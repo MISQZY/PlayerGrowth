@@ -1,0 +1,10 @@
+# supported locales: ru, en
+locale: "ru"
+
+scale:
+  # Initial growth
+  min: 0.3
+  # Max Growth
+  max: 1.0
+  # Time for max growth in minutes
+  time-to-grow: 2880

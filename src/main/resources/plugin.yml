@@ -1,0 +1,21 @@
+name: PlayerGrowth
+version: '${version}'
+main: org.misqzy.playerGrowth.PlayerGrowth
+author: MISQZY
+api-version: '1.20.5'
+commands:
+  height:
+    description: Show your current growth
+    usage: /height
+  playergrowth:
+    description: Main admin command for PlayerGrowth
+    usage: /playergrowth reload
+    aliases: [pg]
+    permission: playergrowth.reload
+permissions:
+  height:
+    description: Show player height
+    default: true
+  playergrowth.reload:
+    description: Allows reloading the plugin config and messages
+    default: op

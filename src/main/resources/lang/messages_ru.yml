@@ -1,0 +1,7 @@
+plugin-reloaded: "Конфиг <green>успешно</green> перезапущен!"
+plugin-reload-error: "При перезапуске плагина возникла <red>ошибка<red>. Проверьте консоль сервера."
+unknown-command: "Неизвестная комманда"
+not-enough-permission: "<red>У вас недостаточно прав для выполнения этой комманды</red>"
+
+help-command: "Плагин PlayerGrowth. Для перезапуска используйте /{command} {subcommand}"
+height-command: "Высота игрока: <green>{height}</green>"

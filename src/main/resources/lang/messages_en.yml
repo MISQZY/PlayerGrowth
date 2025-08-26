@@ -1,0 +1,7 @@
+plugin-reloaded: "Plugin <green>successfully</green> reloaded!"
+plugin-reload-error: "An <red>error</red> occurred while reloading the plugin. Please check the server console."
+unknown-command: "Unknown command"
+not-enough-permission: "<red>You do not have enough permission to execute this command</red>"
+
+help-command: "PlayerGrowth plugin. Use /{command} {subcommand} to reload"
+height-command: "Player height: <green>{height}</green>"

@@ -1,0 +1,11 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+/target/
+.idea/
+*.iml
+*.log
+Thumbs.db
+ehthumbs.db
+*.swp
+*~
