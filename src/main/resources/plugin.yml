@@ -3,6 +3,7 @@ version: '${version}'
 main: org.misqzy.playerGrowth.PlayerGrowth
 author: MISQZY
 api-version: '1.20.5'
+softdepend: [PlaceholderAPI]
 commands:
   height:
     description: Show your current growth

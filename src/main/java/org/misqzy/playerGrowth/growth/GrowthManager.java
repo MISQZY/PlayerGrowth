@@ -7,17 +7,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.misqzy.playerGrowth.config.ConfigManager;
 
+import java.util.Objects;
+
 public class GrowthManager {
     private ConfigManager config;
     private final Plugin plugin;
+    private final GrowthUpdater growthUpdater;
 
     private double minScale;
     private double maxScale;
     private int growTimeMinutes;
 
+
     public GrowthManager(Plugin plugin, ConfigManager config) {
         this.plugin = plugin;
         this.config = config;
+        growthUpdater = new GrowthUpdater(this.plugin, this, this.config);
         updateParameters();
     }
 
@@ -37,6 +42,18 @@ public class GrowthManager {
         if (maxScale < minScale) {
             maxScale = minScale;
         }
+
+        if(config.getIsAutoGrowth()) {
+            growthUpdater.startAutoGrowthTimer();
+        }
+        else {
+            growthUpdater.stopAutoGrowthTimer();
+        }
+    }
+
+    public Double getPlayerHeight(Player player)
+    {
+        return Objects.requireNonNull(player.getAttribute(Attribute.SCALE)).getBaseValue();
     }
 
     public void updateConfig(ConfigManager newConfig) {

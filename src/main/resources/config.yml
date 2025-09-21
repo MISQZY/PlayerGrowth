@@ -1,10 +1,17 @@
 # supported locales: ru, en
-locale: "ru"
+locale: "en"
 
 scale:
-  # Initial growth
+  # Initial growth height
   min: 0.3
-  # Max Growth
+  # Max Growth height
   max: 1.0
-  # Time for max growth in minutes
+  # Time for max growth height (in minutes)
   time-to-grow: 2880
+
+growth:
+  # Enables automatic growth updates
+  auto-growth: true
+  # Growth update time (in seconds)
+  # Very small value may cause performance degradation
+  growth-update-time: 5.0

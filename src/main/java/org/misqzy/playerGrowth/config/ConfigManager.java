@@ -9,6 +9,8 @@ public class ConfigManager {
     private final double maxScale;
     private final int growTimeMinutes;
     private final String locale;
+    private final double growthUpdateTime;
+    private final boolean isAutoGrowth;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -18,6 +20,8 @@ public class ConfigManager {
         this.maxScale = config.getDouble("scale.max", 1.0);
         this.growTimeMinutes = config.getInt("scale.time-to-grow", 120);
         this.locale = config.getString("locale", "en");
+        this.isAutoGrowth = config.getBoolean("growth.auto-growth", false);
+        this.growthUpdateTime = config.getDouble("growth.growth-update-time", 5);
     }
 
     public double getMinScale() {
@@ -34,5 +38,12 @@ public class ConfigManager {
 
     public String getLanguage() {
         return locale;
+    }
+
+    public boolean getIsAutoGrowth() {
+        return isAutoGrowth;
+    }
+    public double getGrowthUpdateTime() {
+        return growthUpdateTime;
     }
 }

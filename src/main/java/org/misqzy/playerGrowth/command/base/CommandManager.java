@@ -4,6 +4,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playerGrowth.command.HeightCommand;
 import org.misqzy.playerGrowth.command.PlayerGrowthCommand;
 
+import java.util.Objects;
+
 public class CommandManager {
 
     private final JavaPlugin plugin;
@@ -17,7 +19,7 @@ public class CommandManager {
     }
 
     public void registerCommands() {
-        plugin.getCommand("height").setExecutor(heightCommand);
-        plugin.getCommand("playergrowth").setExecutor(playerGrowthCommand);
+        Objects.requireNonNull(plugin.getCommand("height")).setExecutor(heightCommand);
+        Objects.requireNonNull(plugin.getCommand("playergrowth")).setExecutor(playerGrowthCommand);
     }
 }

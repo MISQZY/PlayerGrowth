@@ -1,7 +1,6 @@
 package org.misqzy.playerGrowth.command;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,8 +19,7 @@ public class HeightCommand implements CommandExecutor {
             sender.sendMessage("&cOnly player can use this command.");
             return true;
         }
-
-        Double currentScale = player.getAttribute(Attribute.SCALE).getBaseValue();
+        Double currentScale = PlayerGrowth.getInstance().growthManager.getPlayerHeight(player);
 
         Component message = PlayerGrowth.getInstance().messageManager.getMessage(
                 "height-command",
