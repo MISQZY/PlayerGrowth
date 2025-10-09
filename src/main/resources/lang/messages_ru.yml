@@ -5,3 +5,9 @@ not-enough-permission: "<red>У вас недостаточно прав для 
 
 help-command: "Плагин PlayerGrowth. Для перезапуска используйте /{command} {subcommand}"
 height-command: "Высота игрока: <green>{height}</green>"
+time-until-growth-end-command: "Осталось до конца взросления: <green>{time}</green>"
+
+days: "дней"
+hours: "часов"
+mins: "минут"
+seconds: "секунд"

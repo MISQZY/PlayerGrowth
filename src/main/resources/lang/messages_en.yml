@@ -5,3 +5,9 @@ not-enough-permission: "<red>You do not have enough permission to execute this c
 
 help-command: "PlayerGrowth plugin. Use /{command} {subcommand} to reload"
 height-command: "Player height: <green>{height}</green>"
+time-until-growth-end-command: "Time left until the end of growth: <green>{time}</green>"
+
+days: "days"
+hours: "hours"
+mins: "mins"
+seconds: "seconds"

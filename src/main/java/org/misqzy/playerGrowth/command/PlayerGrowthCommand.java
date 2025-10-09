@@ -87,6 +87,7 @@ public class PlayerGrowthCommand implements CommandExecutor, TabCompleter {
             plugin.configManager = newConfig;
             plugin.messageManager = new MessageManager(plugin, newConfig.getLanguage());
             plugin.growthManager.updateConfig(newConfig);
+            plugin.growthManager.updateAllPlayersScale();
     }
 }
 

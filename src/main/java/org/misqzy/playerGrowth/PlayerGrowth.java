@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playerGrowth.command.base.CommandManager;
 import org.misqzy.playerGrowth.config.ConfigManager;
-import org.misqzy.playerGrowth.growth.GrowthUpdater;
 import org.misqzy.playerGrowth.lang.MessageManager;
 import org.misqzy.playerGrowth.growth.GrowthManager;
 import org.misqzy.playerGrowth.lang.PlaceholderAPIHook;
@@ -17,7 +16,6 @@ public final class PlayerGrowth extends JavaPlugin {
     public ConfigManager configManager;
     public GrowthManager growthManager;
     public MessageManager messageManager;
-    public GrowthUpdater growthUpdater;
 
     @Override
     public void onEnable() {

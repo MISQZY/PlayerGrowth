@@ -1,5 +1,6 @@
 package org.misqzy.playerGrowth.growth;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Statistic;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -62,16 +63,52 @@ public class GrowthManager {
     }
 
     public void updatePlayerScale(Player player) {
-        long playedTicks  = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
-        double playedSeconds = playedTicks / 20.0;
+        AttributeInstance scaleAttribute = player.getAttribute(Attribute.SCALE);
+        if (scaleAttribute == null) {
+            return;
+        }
 
-        double progress = Math.min(1.0, (double) playedSeconds / (growTimeMinutes * 60));
+        double growTimeSeconds = calculateGrowthTimeSeconds(player);
+        if (growTimeSeconds <= 0) {
+            scaleAttribute.setBaseValue(maxScale);
+            return;
+        }
 
+        double progress = calculateProgress(calculatePlayedSeconds(player), growTimeSeconds);
         double newScale = minScale + (maxScale - minScale) * progress;
 
-        AttributeInstance scaleAttr = player.getAttribute(Attribute.SCALE);
-        if (scaleAttr != null) {
-            scaleAttr.setBaseValue(newScale);
+        scaleAttribute.setBaseValue(newScale);
+    }
+
+    public void updateAllPlayersScale()
+    {
+        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+            updatePlayerScale(player);
         }
+    }
+
+    private double calculateProgress(double playedSeconds, double growTimeSeconds) {
+        if (playedSeconds <= 0) {
+            return 0.0;
+        }
+        return Math.min(1.0, playedSeconds / growTimeSeconds);
+    }
+
+    public long calculateGrowthTimeSeconds(Player player)
+    {
+        return (long) (growTimeMinutes * 60.0);
+    }
+
+    public long calculatePlayedSeconds(Player player)
+    {
+        long playedTicks = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
+        return (long) (playedTicks / 20.0);
+    }
+
+    public long calculateUntilGrowthEndTimeSeconds(Player player)
+    {
+        long secondsToFullGrowth = calculateGrowthTimeSeconds(player);
+        long playedSeconds = calculatePlayedSeconds(player);
+        return secondsToFullGrowth - playedSeconds;
     }
 }

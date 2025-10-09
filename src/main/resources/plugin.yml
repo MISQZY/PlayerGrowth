@@ -13,6 +13,9 @@ commands:
     usage: /playergrowth reload
     aliases: [pg]
     permission: playergrowth.reload
+  growthtime:
+    description: Show time until growth end
+    usage: /growthtime
 permissions:
   height:
     description: Show player height
