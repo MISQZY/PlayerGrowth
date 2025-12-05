@@ -224,4 +224,25 @@ public class GrowthManager {
         long playedSeconds = calculatePlayedSeconds(player);
         return secondsToFullGrowth - playedSeconds;
     }
+    
+    public boolean isPlayerMaxGrowth(Player player) {
+        UUID playerUuid = player.getUniqueId();
+        
+        Double customScale = customScalesCache.get(playerUuid);
+        if (customScale != null) {
+            return false;
+        }
+        
+        double currentScale = Objects.requireNonNull(player.getAttribute(Attribute.SCALE)).getBaseValue();
+        double growTimeSeconds = calculateGrowthTimeSeconds(player);
+        
+        if (growTimeSeconds <= 0) {
+            return currentScale >= maxScale;
+        }
+        
+        double playedSeconds = calculatePlayedSeconds(player);
+        double progress = calculateProgress(playedSeconds, growTimeSeconds);
+        
+        return currentScale >= maxScale && progress >= 1.0;
+    }
 }

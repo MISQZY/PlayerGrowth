@@ -27,11 +27,6 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         
-        if (!sender.hasPermission("playergrowth.setheight")) {
-            sender.sendMessage(plugin.messageManager.getMessage("not-enough-permission"));
-            return true;
-        }
-        
         if (args.length == 0) {
             sender.sendMessage(plugin.messageManager.getMessage("setheight-usage",
                     Map.of("command", label)));
@@ -41,6 +36,8 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
         Player target;
         String heightArg;
         
+        boolean isSelfTarget = false;
+        
         if (args.length == 1) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage(plugin.messageManager.getMessage("setheight-usage",
@@ -49,6 +46,7 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
             }
             target = (Player) sender;
             heightArg = args[0];
+            isSelfTarget = true;
         } else {
             target = Bukkit.getPlayer(args[0]);
             if (target == null) {
@@ -57,6 +55,13 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             heightArg = args[1];
+            isSelfTarget = sender instanceof Player && ((Player) sender).getUniqueId().equals(target.getUniqueId());
+        }
+        
+        String requiredPermission = isSelfTarget ? "playergrowth.setheight.own" : "playergrowth.setheight.other";
+        if (!sender.hasPermission(requiredPermission)) {
+            sender.sendMessage(plugin.messageManager.getMessage("not-enough-permission"));
+            return true;
         }
         
         if (heightArg.equalsIgnoreCase("remove") || heightArg.equalsIgnoreCase("reset")) {
@@ -116,12 +121,15 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
                                                 @NotNull String alias,
                                                 @NotNull String[] args) {
         
-        if (!sender.hasPermission("playergrowth.setheight")) {
+        boolean hasOwnPermission = sender.hasPermission("playergrowth.setheight.own");
+        boolean hasOtherPermission = sender.hasPermission("playergrowth.setheight.other");
+        
+        if (!hasOwnPermission && !hasOtherPermission) {
             return List.of();
         }
         
         if (args.length == 1) {
-            if (sender instanceof Player) {
+            if (sender instanceof Player && hasOwnPermission) {
                 String input = args[0].toLowerCase();
                 List<String> suggestions = new ArrayList<>();
                 
@@ -138,8 +146,16 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
                     }
                 }
                 
+                if (hasOtherPermission) {
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.getName().toLowerCase().startsWith(input)) {
+                            suggestions.add(player.getName());
+                        }
+                    }
+                }
+                
                 return suggestions;
-            } else {
+            } else if (hasOtherPermission) {
                 List<String> players = new ArrayList<>();
                 String input = args[0].toLowerCase();
                 for (Player player : Bukkit.getOnlinePlayers()) {
@@ -151,7 +167,7 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
             }
         }
         
-        if (args.length == 2) {
+        if (args.length == 2 && hasOtherPermission) {
             String input = args[1].toLowerCase();
             List<String> suggestions = new ArrayList<>();
             
