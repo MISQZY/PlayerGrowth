@@ -7,6 +7,15 @@ help-command: "Плагин PlayerGrowth. Для перезапуска испо
 height-command: "Высота игрока: <green>{height}</green>"
 time-until-growth-end-command: "Осталось до конца взросления: <green>{time}</green>"
 
+setheight-usage: "Использование: /{command} <игрок> <размер|remove>"
+setheight-success: "Размер игрока <green>{player}</green> установлен на <green>{scale}</green>"
+setheight-failed: "<red>Не удалось установить размер игрока {player}</red>"
+setheight-removed: "Кастомный размер игрока <green>{player}</green> удален"
+setheight-remove-failed: "<red>Не удалось удалить кастомный размер игрока {player}</red>"
+setheight-out-of-range: "<red>Размер должен быть между {min} и {max}</red>"
+setheight-invalid-number: "<red>Неверное число: {value}</red>"
+player-not-found: "<red>Игрок {player} не найден</red>"
+
 days: "дней"
 hours: "часов"
 mins: "минут"

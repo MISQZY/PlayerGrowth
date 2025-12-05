@@ -1,6 +1,22 @@
 # supported locales: ru, en
 locale: "en"
 
+# Storage type: YAML, H2, MYSQL, MARIADB
+storage: H2
+
+database:
+  host: localhost
+  port: 3306
+  database: playergrowth
+  username: root
+  password: ""
+  pool:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+
 scale:
   # Initial growth height
   min: 0.3

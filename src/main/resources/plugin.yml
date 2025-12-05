@@ -16,10 +16,17 @@ commands:
   growthtime:
     description: Show time until growth end
     usage: /growthtime
+  setheight:
+    description: Set custom height for a player
+    usage: /setheight <player> <height|remove>
+    permission: playergrowth.setheight
 permissions:
   height:
     description: Show player height
     default: true
   playergrowth.reload:
     description: Allows reloading the plugin config and messages
+    default: op
+  playergrowth.setheight:
+    description: Allows setting custom player height
     default: op
