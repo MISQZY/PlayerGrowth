@@ -6,23 +6,32 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.misqzy.playerGrowth.config.ConfigManager;
+import org.misqzy.playerGrowth.storage.Storage;
 
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GrowthManager {
     private ConfigManager config;
     private final Plugin plugin;
     private final GrowthUpdater growthUpdater;
+    private Storage storage;
+    
+    private final ConcurrentHashMap<UUID, Double> customScalesCache = new ConcurrentHashMap<>();
 
     private double minScale;
     private double maxScale;
     private int growTimeMinutes;
 
 
-    public GrowthManager(Plugin plugin, ConfigManager config) {
+    public GrowthManager(Plugin plugin, ConfigManager config, Storage storage) {
         this.plugin = plugin;
         this.config = config;
+        this.storage = storage;
         growthUpdater = new GrowthUpdater(this.plugin, this, this.config);
         updateParameters();
     }
@@ -61,6 +70,10 @@ public class GrowthManager {
         this.config = newConfig;
         updateParameters();
     }
+    
+    public void setStorage(Storage storage) {
+        this.storage = storage;
+    }
 
     public void updatePlayerScale(Player player) {
         AttributeInstance scaleAttribute = player.getAttribute(Attribute.SCALE);
@@ -68,16 +81,116 @@ public class GrowthManager {
             return;
         }
 
-        double growTimeSeconds = calculateGrowthTimeSeconds(player);
-        if (growTimeSeconds <= 0) {
-            scaleAttribute.setBaseValue(maxScale);
+        UUID playerUuid = player.getUniqueId();
+        
+        Double customScale = customScalesCache.get(playerUuid);
+        if (customScale != null) {
+            scaleAttribute.setBaseValue(customScale);
             return;
         }
+        
+        storage.hasCustomScale(playerUuid).thenAccept(hasCustom -> {
+            if (hasCustom) {
+                storage.getCustomScale(playerUuid).thenAccept(scale -> {
+                    if (scale != null) {
+                        customScalesCache.put(playerUuid, scale);
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                if (player.isOnline()) {
+                                    AttributeInstance attr = player.getAttribute(Attribute.SCALE);
+                                    if (attr != null) {
+                                        attr.setBaseValue(scale);
+                                    }
+                                }
+                            }
+                        }.runTask(plugin);
+                    }
+                });
+            } else {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (player.isOnline()) {
+                            double growTimeSeconds = calculateGrowthTimeSeconds(player);
+                            if (growTimeSeconds <= 0) {
+                                scaleAttribute.setBaseValue(maxScale);
+                                return;
+                            }
 
-        double progress = calculateProgress(calculatePlayedSeconds(player), growTimeSeconds);
-        double newScale = minScale + (maxScale - minScale) * progress;
+                            double progress = calculateProgress(calculatePlayedSeconds(player), growTimeSeconds);
+                            double newScale = minScale + (maxScale - minScale) * progress;
 
-        scaleAttribute.setBaseValue(newScale);
+                            scaleAttribute.setBaseValue(newScale);
+                        }
+                    }
+                }.runTask(plugin);
+            }
+        });
+    }
+    
+    public void loadPlayerCustomScale(Player player) {
+        UUID playerUuid = player.getUniqueId();
+        storage.getCustomScale(playerUuid).thenAccept(scale -> {
+            if (scale != null) {
+                customScalesCache.put(playerUuid, scale);
+            }
+        });
+    }
+    
+    public void unloadPlayerCustomScale(Player player) {
+        customScalesCache.remove(player.getUniqueId());
+    }
+    
+    public CompletableFuture<Boolean> setCustomScale(Player player, double scale) {
+        if (scale < minScale || scale > maxScale) {
+            return CompletableFuture.completedFuture(false);
+        }
+        
+        UUID playerUuid = player.getUniqueId();
+        return storage.setCustomScale(playerUuid, scale).thenApply(success -> {
+            if (success) {
+                customScalesCache.put(playerUuid, scale);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (player.isOnline()) {
+                            AttributeInstance scaleAttribute = player.getAttribute(Attribute.SCALE);
+                            if (scaleAttribute != null) {
+                                scaleAttribute.setBaseValue(scale);
+                            }
+                        }
+                    }
+                }.runTask(plugin);
+            }
+            return success;
+        });
+    }
+    
+    public CompletableFuture<Boolean> removeCustomScale(Player player) {
+        UUID playerUuid = player.getUniqueId();
+        return storage.removeCustomScale(playerUuid).thenApply(success -> {
+            if (success) {
+                customScalesCache.remove(playerUuid);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (player.isOnline()) {
+                            updatePlayerScale(player);
+                        }
+                    }
+                }.runTask(plugin);
+            }
+            return success;
+        });
+    }
+    
+    public double getMinScale() {
+        return minScale;
+    }
+    
+    public double getMaxScale() {
+        return maxScale;
     }
 
     public void updateAllPlayersScale()
