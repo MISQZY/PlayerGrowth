@@ -18,7 +18,7 @@ commands:
     usage: /growthtime
   setheight:
     description: Set custom height for a player
-    usage: /setheight <player> <height|remove>
+    usage: /setheight [player] <height|remove>
     permission: playergrowth.setheight
 permissions:
   height:

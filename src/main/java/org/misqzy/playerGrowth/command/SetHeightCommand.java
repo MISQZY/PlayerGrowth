@@ -32,20 +32,34 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        if (args.length < 2) {
+        if (args.length == 0) {
             sender.sendMessage(plugin.messageManager.getMessage("setheight-usage",
                     Map.of("command", label)));
             return true;
         }
         
-        Player target = Bukkit.getPlayer(args[0]);
-        if (target == null) {
-            sender.sendMessage(plugin.messageManager.getMessage("player-not-found",
-                    Map.of("player", args[0])));
-            return true;
+        Player target;
+        String heightArg;
+        
+        if (args.length == 1) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage(plugin.messageManager.getMessage("setheight-usage",
+                        Map.of("command", label)));
+                return true;
+            }
+            target = (Player) sender;
+            heightArg = args[0];
+        } else {
+            target = Bukkit.getPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(plugin.messageManager.getMessage("player-not-found",
+                        Map.of("player", args[0])));
+                return true;
+            }
+            heightArg = args[1];
         }
         
-        if (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("reset")) {
+        if (heightArg.equalsIgnoreCase("remove") || heightArg.equalsIgnoreCase("reset")) {
             CompletableFuture<Boolean> result = plugin.growthManager.removeCustomScale(target);
             result.thenAccept(success -> {
                 if (success) {
@@ -60,7 +74,7 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
         }
         
         try {
-            double scale = Double.parseDouble(args[1]);
+            double scale = Double.parseDouble(heightArg);
             double minScale = plugin.growthManager.getMinScale();
             double maxScale = plugin.growthManager.getMaxScale();
             
@@ -89,7 +103,7 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
             
         } catch (NumberFormatException e) {
             sender.sendMessage(plugin.messageManager.getMessage("setheight-invalid-number",
-                    Map.of("value", args[1])));
+                    Map.of("value", heightArg)));
             return true;
         }
         
@@ -107,14 +121,34 @@ public class SetHeightCommand implements CommandExecutor, TabCompleter {
         }
         
         if (args.length == 1) {
-            List<String> players = new ArrayList<>();
-            String input = args[0].toLowerCase();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase().startsWith(input)) {
-                    players.add(player.getName());
+            if (sender instanceof Player) {
+                String input = args[0].toLowerCase();
+                List<String> suggestions = new ArrayList<>();
+                
+                if ("remove".startsWith(input) || "reset".startsWith(input)) {
+                    suggestions.add("remove");
                 }
+                
+                double minScale = plugin.growthManager.getMinScale();
+                double maxScale = plugin.growthManager.getMaxScale();
+                for (double scale = minScale; scale <= maxScale; scale += 0.1) {
+                    String scaleStr = String.format("%.1f", scale);
+                    if (scaleStr.startsWith(input)) {
+                        suggestions.add(scaleStr);
+                    }
+                }
+                
+                return suggestions;
+            } else {
+                List<String> players = new ArrayList<>();
+                String input = args[0].toLowerCase();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.getName().toLowerCase().startsWith(input)) {
+                        players.add(player.getName());
+                    }
+                }
+                return players;
             }
-            return players;
         }
         
         if (args.length == 2) {
