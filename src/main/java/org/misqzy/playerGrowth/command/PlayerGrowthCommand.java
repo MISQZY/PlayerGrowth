@@ -86,6 +86,21 @@ public class PlayerGrowthCommand implements CommandExecutor, TabCompleter {
             ConfigManager newConfig = new ConfigManager(plugin);
             plugin.configManager = newConfig;
             plugin.messageManager = new MessageManager(plugin, newConfig.getLanguage());
+            
+            String oldStorageType = plugin.storage != null ? plugin.configManager.getStorageType() : "";
+            if (!oldStorageType.equals(newConfig.getStorageType())) {
+                if (plugin.storage != null) {
+                    plugin.storage.close();
+                }
+                plugin.storage = org.misqzy.playerGrowth.storage.StorageFactory.createStorage(plugin, newConfig);
+                if (!plugin.storage.initialize()) {
+                    plugin.getLogger().severe("Failed to initialize storage after reload!");
+                } else {
+                    plugin.storage.testConnection();
+                }
+                plugin.growthManager.setStorage(plugin.storage);
+            }
+            
             plugin.growthManager.updateConfig(newConfig);
             plugin.growthManager.updateAllPlayersScale();
     }

@@ -36,7 +36,7 @@ public class GrowthUpdater {
             @Override
             public void run() {
                 for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                    if(!isGrowthBlocked(player))
+                    if(!isGrowthBlocked(player) && !growthManager.isPlayerMaxGrowth(player))
                     {
                         growthManager.updatePlayerScale(player);
                     }
