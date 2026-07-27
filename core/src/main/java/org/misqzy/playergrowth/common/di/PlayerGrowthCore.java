@@ -14,6 +14,8 @@ import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.storage.Storage;
 import org.misqzy.playergrowth.common.storage.StorageFactory;
 
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 /**
@@ -43,20 +45,24 @@ public final class PlayerGrowthCore {
      * @param mainConfigView    parsed config.yml
      * @param genderConfigView  parsed gender.yml
      * @param messagesView      parsed active-locale localisation file
+     * @param fcolors           looks up FlectonePulse's configured {@code <fcolor:N>} palette on demand (empty if
+     *                          unavailable/disabled) - a live lookup, not a value, since the platform module's
+     *                          FlectonePulse detection can lag behind {@code onEnable()} by a beat (see {@link Messages})
      */
     public static PlayerGrowthCore bootstrap(Platform platform, Module platformModule,
                                               ConfigView mainConfigView, ConfigView genderConfigView,
-                                              ConfigView messagesView) {
+                                              ConfigView messagesView, Supplier<Map<Integer, String>> fcolors) {
         PlayerGrowthCore core = new PlayerGrowthCore(platform);
-        core.buildAll(platformModule, mainConfigView, genderConfigView, messagesView);
+        core.buildAll(platformModule, mainConfigView, genderConfigView, messagesView, fcolors);
         return core;
     }
 
-    private void buildAll(Module platformModule, ConfigView mainConfigView, ConfigView genderConfigView, ConfigView messagesView) {
+    private void buildAll(Module platformModule, ConfigView mainConfigView, ConfigView genderConfigView,
+                           ConfigView messagesView, Supplier<Map<Integer, String>> fcolors) {
         this.config = new CoreConfig(mainConfigView);
         this.storage = initStorage(platform.logger(), platform.dataFolder(), config);
         this.genderRegistry = new GenderRegistry(genderConfigView, config.maxScale());
-        this.messages = new Messages(messagesView);
+        this.messages = new Messages(messagesView, config.primaryColor(), config.secondaryColor(), fcolors);
 
         this.injector = Guice.createInjector(
                 new CoreModule(config, storage, genderRegistry),
@@ -91,7 +97,7 @@ public final class PlayerGrowthCore {
     }
 
     /** Rebuilds config/storage/gender registry from freshly re-read files and hot-swaps them into the running engine. */
-    public void reload(ConfigView mainConfigView, ConfigView genderConfigView, ConfigView messagesView) {
+    public void reload(ConfigView mainConfigView, ConfigView genderConfigView, ConfigView messagesView, Supplier<Map<Integer, String>> fcolors) {
         CoreConfig newConfig = new CoreConfig(mainConfigView);
         GenderRegistry newGenderRegistry = new GenderRegistry(genderConfigView, newConfig.maxScale());
 
@@ -105,7 +111,7 @@ public final class PlayerGrowthCore {
         this.config = newConfig;
         this.storage = newStorage;
         this.genderRegistry = newGenderRegistry;
-        this.messages = new Messages(messagesView);
+        this.messages = new Messages(messagesView, newConfig.primaryColor(), newConfig.secondaryColor(), fcolors);
 
         growthEngine().applyReload(newConfig, newStorage, newGenderRegistry);
     }

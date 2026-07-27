@@ -2,6 +2,7 @@ package org.misqzy.playergrowth.bukkit.config;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playergrowth.common.config.migration.ConfigMigrations;
+import org.misqzy.playergrowth.common.config.migration.VersionComparator;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -19,11 +20,20 @@ import java.util.Map;
 
 /**
  * Migrates every bundled resource file (config.yml, gender.yml, both locale
- * files) forward when config.yml's {@code config-version} is stale, by
+ * files) forward when config.yml's {@code version} is stale, by
  * transforming each on-disk parsed tree in place rather than discarding it
  * - see {@link ConfigMigrations} for why and how. All four files share
- * config.yml's version number rather than each tracking their own; there's
+ * config.yml's version rather than each tracking their own; there's
  * only one bundled "resource pack" version to be behind or caught up with.
+ *
+ * <p>{@code version} is the plugin's own semver (e.g. {@code "0.1.1"}),
+ * token-expanded into the bundled config.yml at build time - not a separate
+ * incrementing counter. This means the on-disk copy also doubles as "the
+ * plugin build that generated/last touched this file" (what a dedicated
+ * {@code ConfigVersionStamper} used to do as a second mechanism, before the
+ * two fields were merged into one): every release runs this migration path
+ * at least once, which is harmless since {@link ConfigMigrations#apply}'s
+ * merge step is idempotent when nothing actually changed shape.</p>
  *
  * <p>Comments are still lost on any file this rewrites - that's an
  * unavoidable SnakeYAML limitation (see docs/ARCHITECTURE.md "Known,
@@ -43,6 +53,9 @@ public final class ConfigMigrator {
     /** Has an open, user-owned {@code types} section - only explicit steps run against it, never a blind merge. */
     private static final String GENDER_RESOURCE = "gender.yml";
 
+    /** No {@code version} on disk at all (an install from before this field existed) - always stale. */
+    private static final String UNKNOWN_VERSION = "0.0.0";
+
     private final JavaPlugin plugin;
     private final Yaml yaml = new Yaml();
 
@@ -54,21 +67,21 @@ public final class ConfigMigrator {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         if (!configFile.exists()) return;
 
-        int bundledVersion = readVersion(readBundled("config.yml"));
-        int onDiskVersion = readVersion(readDisk(configFile));
-        if (onDiskVersion >= bundledVersion) return;
+        String bundledVersion = readVersion(readBundled("config.yml"));
+        String onDiskVersion = readVersion(readDisk(configFile));
+        if (VersionComparator.compare(onDiskVersion, bundledVersion) >= 0) return;
 
         for (String resource : MERGED_RESOURCES) {
             migrateOne(resource, onDiskVersion, bundledVersion, true);
         }
         migrateOne(GENDER_RESOURCE, onDiskVersion, bundledVersion, false);
 
-        plugin.getLogger().warning("Migrated PlayerGrowth's config files from config-version " + onDiskVersion
+        plugin.getLogger().warning("Migrated PlayerGrowth's config files from version " + onDiskVersion
                 + " to " + bundledVersion + ". Old files were backed up (.bak.<timestamp>) and custom values"
                 + " were carried over automatically, but comments were not.");
     }
 
-    private void migrateOne(String resourceName, int fromVersion, int toVersion, boolean mergeMissingKeys) {
+    private void migrateOne(String resourceName, String fromVersion, String toVersion, boolean mergeMissingKeys) {
         File target = new File(plugin.getDataFolder(), resourceName);
         if (!target.exists()) return;
 
@@ -79,7 +92,7 @@ public final class ConfigMigrator {
         backup(target);
         ConfigMigrations.apply(resourceName, disk, bundled, fromVersion, toVersion, mergeMissingKeys);
         if ("config.yml".equals(resourceName)) {
-            disk.put("config-version", toVersion);
+            disk.put("version", toVersion);
         }
         write(target, disk);
     }
@@ -105,9 +118,9 @@ public final class ConfigMigrator {
         }
     }
 
-    private int readVersion(Map<?, ?> map) {
-        Object v = map.get("config-version");
-        return v instanceof Number n ? n.intValue() : 1;
+    private String readVersion(Map<?, ?> map) {
+        Object v = map.get("version");
+        return v != null ? String.valueOf(v) : UNKNOWN_VERSION;
     }
 
     private void backup(File target) {

@@ -14,10 +14,10 @@ import org.misqzy.playergrowth.bukkit.api.PlayerGrowthAPI;
 import org.misqzy.playergrowth.bukkit.api.PlayerGrowthAPIImpl;
 import org.misqzy.playergrowth.bukkit.command.CommandRegistry;
 import org.misqzy.playergrowth.bukkit.config.ConfigMigrator;
-import org.misqzy.playergrowth.bukkit.config.ConfigVersionStamper;
 import org.misqzy.playergrowth.bukkit.config.ResourceInstaller;
 import org.misqzy.playergrowth.bukkit.config.ServerIdProvisioner;
 import org.misqzy.playergrowth.bukkit.config.YamlFileLoader;
+import org.misqzy.playergrowth.bukkit.integration.FlectonePulseColorResolver;
 import org.misqzy.playergrowth.bukkit.integration.FlectonePulseServerIdResolver;
 import org.misqzy.playergrowth.bukkit.integration.PlaceholderAPIHook;
 import org.misqzy.playergrowth.bukkit.listener.PlayerConnectionListener;
@@ -86,7 +86,8 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         new ConfigMigrator(this).migrateIfNeeded();
 
         ConfigView mainConfig = loadConfig("config.yml");
-        core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig));
+        FlectonePulseColorResolver.logDiagnostics(this);
+        core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig), FlectonePulseColorResolver::resolveDefaultColors);
         if (ticker != null) ticker.restart();
 
         List<PlatformPlayer> online = Bukkit.getOnlinePlayers().stream()
@@ -101,7 +102,6 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
     private PlayerGrowthCore bootstrapCore() {
         ConfigView mainConfig = loadConfig("config.yml");
-        ConfigVersionStamper.stamp(this, mainConfig, BuildVersion.VERSION);
 
         scheduler = new BukkitScheduler(this);
 
@@ -122,7 +122,9 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         BukkitPlatform platform = new BukkitPlatform(this, scheduler, serverId);
         BukkitModule bukkitModule = new BukkitModule(scheduler, messenger, lookup);
 
-        return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig));
+        FlectonePulseColorResolver.logDiagnostics(this);
+        return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig),
+                FlectonePulseColorResolver::resolveDefaultColors);
     }
 
     private PlatformPlayer findOnline(UUID uuid) {

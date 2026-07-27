@@ -14,6 +14,8 @@ dependencies {
 
     compileOnly("io.papermc.paper:paper-api:${project.findProperty("paperVersion")}")
     compileOnly("me.clip:placeholderapi:${project.findProperty("placeholderapiVersion")}")
+    // FlectonePulse's own published API module - see integration/FlectonePulseAccess.
+    compileOnly("net.flectone.pulse:core:${project.findProperty("flectonePulseVersion")}")
 
     implementation("org.incendo:cloud-core:${project.findProperty("cloudCoreVersion")}")
     implementation("org.incendo:cloud-paper:${project.findProperty("cloudPaperVersion")}")

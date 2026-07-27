@@ -18,6 +18,8 @@ dependencies {
     // hypothetical, since Paper users should run minecraft:paper instead.
     compileOnly("org.spigotmc:spigot-api:${project.findProperty("spigotVersion")}")
     compileOnly("me.clip:placeholderapi:${project.findProperty("placeholderapiVersion")}")
+    // FlectonePulse's own published API module - see integration/FlectonePulseAccess.
+    compileOnly("net.flectone.pulse:core:${project.findProperty("flectonePulseVersion")}")
     // Unlike paper-api, spigot-api's own pom does not pull in com.mojang:brigadier
     // transitively (verified: no such dependency in its published pom.xml) - but
     // cloud-bukkit transitively depends on cloud-brigadier, whose compiled classes

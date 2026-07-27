@@ -1,42 +1,53 @@
 # MiniMessage-formatted strings. See https://docs.advntr.dev/minimessage/format.html
+# <primary>/<secondary> pull from config.yml's colors.primary/colors.secondary.
+# <fcolor:N> pulls from FlectonePulse's own configured default colors
+# (message.yml's format.fcolor.default_colors) when FlectonePulse is
+# installed and enabled - a no-op otherwise.
+# <red> is reserved for errors/failures - every other color comes from
+# colors.primary/colors.secondary above.
+#
+# <primary>/<secondary>/<fcolor:N> apply forward from that point (like
+# FlectonePulse's own <fcolor:N>) rather than being scoped to their </tag> -
+# after a short inner span (e.g. a name), re-open the surrounding color
+# explicitly to return to it, don't rely on the closing tag to restore it.
 
 command:
   players-only: '<red>This command can only be used by a player.</red>'
   invalid-syntax: |-
-    <gray>|</gray>
-    <gray>|</gray> <red>Usage →</red>
-    <gray>|</gray> <yellow><syntax></yellow>
-    <gray>|</gray>
+    <secondary>|</secondary>
+    <secondary>|</secondary> <secondary>Usage →<secondary>
+    <secondary>|</secondary> <primary><syntax></primary>
+    <secondary>|</secondary>
 
 height:
   unit: 'm'
-  set: '<green>Set <yellow><player></yellow>''s height to <yellow><value></yellow> m.</green>'
-  invalid: '<red>Height must be between <yellow><min></yellow> and <yellow><max></yellow> m.</red>'
-  removed: '<green><yellow><player></yellow>''s custom height was removed.</green>'
+  set: '<primary>Set <secondary><player></secondary><primary>''s height to <secondary><value></secondary><primary> m.'
+  invalid: '<red>Height must be between <secondary><min></secondary><red> and <secondary><max></secondary><red> m.'
+  removed: '<primary><secondary><player></secondary><primary>''s custom height was removed.'
   remove-failed: '<red>Failed to remove custom height.</red>'
 
 gender:
   disabled: '<red>Genders are disabled on this server.</red>'
-  unknown: '<red>Unknown gender "<yellow><input></yellow>".</red>'
-  set: '<green><yellow><player></yellow>''s gender set to <yellow><gender></yellow>.</green>'
+  unknown: '<red>Unknown gender "<secondary><input></secondary><red>".'
+  set: '<primary><secondary><player></secondary><primary>''s gender set to <secondary><gender></secondary><primary>.'
   set-failed: '<red>Failed to set gender.</red>'
   display:
     male: 'Male'
     female: 'Female'
 
 growth-info:
-  header: '<gold>--- <yellow><player></yellow>''s growth ---</gold>'
-  height: '<gray>Height: <white><value> <unit></white> <dark_gray>(<gender>)</dark_gray></gray>'
-  gender: '<gray>Gender: <white><gender></white></gray>'
-  max-reached: '<green>Fully grown.</green>'
-  remaining: '<gray>Time remaining: <white><time></white></gray>'
+  header: '<primary>--- <secondary><player></secondary><primary>''s growth ---'
+  height: '<secondary>Height: <primary><value> <unit></primary><secondary> (<gender>)'
+  gender: '<secondary>Gender: <primary><gender>'
+  max-reached: '<primary>Fully grown.</primary>'
+  remaining: '<secondary>Time remaining: <primary><time>'
 
 admin:
-  reloaded: '<green>PlayerGrowth configuration reloaded.</green>'
+  reloaded: '<primary><secondary>PlayerGrowth</secondary> configuration reloaded.</primary>'
 
 help:
-  header: '<gold>--- PlayerGrowth commands ---</gold>'
-  entry: '<yellow><syntax></yellow> <gray>-</gray> <white><description></white>'
+  header: '<primary>--- PlayerGrowth commands ---</primary>'
+  entry: '<secondary><syntax> - <primary><description>'
   height: 'Set your own height, in meters.'
   height-remove: 'Remove your custom height.'
   height-set-others: 'Set another player''s height, in meters.'

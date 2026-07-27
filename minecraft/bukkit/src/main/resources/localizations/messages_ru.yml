@@ -1,42 +1,53 @@
 # MiniMessage-formatted strings. See https://docs.advntr.dev/minimessage/format.html
+# <primary>/<secondary> pull from config.yml's colors.primary/colors.secondary.
+# <fcolor:N> pulls from FlectonePulse's own configured default colors
+# (message.yml's format.fcolor.default_colors) when FlectonePulse is
+# installed and enabled - a no-op otherwise.
+# <red> is reserved for errors/failures - every other color comes from
+# colors.primary/colors.secondary above.
+#
+# <primary>/<secondary>/<fcolor:N> apply forward from that point (like
+# FlectonePulse's own <fcolor:N>) rather than being scoped to their </tag> -
+# after a short inner span (e.g. a name), re-open the surrounding color
+# explicitly to return to it, don't rely on the closing tag to restore it.
 
 command:
   players-only: '<red>Эта команда доступна только игрокам.</red>'
   invalid-syntax: |-
-    <gray>|</gray>
-    <gray>|</gray> <red>Использование →</red>
-    <gray>|</gray> <yellow><syntax></yellow>
-    <gray>|</gray>
+    <secondary>|</secondary>
+    <secondary>|</secondary> <secondary>Использование →<secondary>
+    <secondary>|</secondary> <primary><syntax></primary>
+    <secondary>|</secondary>
 
 height:
   unit: 'м'
-  set: '<green>Рост <yellow><player></yellow> установлен на <yellow><value></yellow> м.</green>'
-  invalid: '<red>Рост должен быть между <yellow><min></yellow> и <yellow><max></yellow> м.</red>'
-  removed: '<green>Индивидуальный рост игрока <yellow><player></yellow> сброшен.</green>'
+  set: '<primary>Рост <secondary><player></secondary><primary> установлен на <secondary><value></secondary><primary> м.'
+  invalid: '<red>Рост должен быть между <secondary><min></secondary><red> и <secondary><max></secondary><red> м.'
+  removed: '<primary>Индивидуальный рост игрока <secondary><player></secondary><primary> сброшен.'
   remove-failed: '<red>Не удалось сбросить рост.</red>'
 
 gender:
   disabled: '<red>Пол отключён на этом сервере.</red>'
-  unknown: '<red>Неизвестный пол "<yellow><input></yellow>".</red>'
-  set: '<green>Пол игрока <yellow><player></yellow> установлен: <yellow><gender></yellow>.</green>'
+  unknown: '<red>Неизвестный пол "<secondary><input></secondary><red>".'
+  set: '<primary>Пол игрока <secondary><player></secondary><primary> установлен: <secondary><gender></secondary><primary>.'
   set-failed: '<red>Не удалось установить пол.</red>'
   display:
     male: 'Мужской'
     female: 'Женский'
 
 growth-info:
-  header: '<gold>--- Рост игрока <yellow><player></yellow> ---</gold>'
-  height: '<gray>Рост: <white><value> <unit></white> <dark_gray>(<gender>)</dark_gray></gray>'
-  gender: '<gray>Пол: <white><gender></white></gray>'
-  max-reached: '<green>Рост завершён.</green>'
-  remaining: '<gray>Осталось времени: <white><time></white></gray>'
+  header: '<primary>--- Рост игрока <secondary><player></secondary><primary> ---'
+  height: '<secondary>Рост: <primary><value> <unit></primary><secondary> (<gender>)'
+  gender: '<secondary>Пол: <primary><gender>'
+  max-reached: '<primary>Рост завершён.</primary>'
+  remaining: '<secondary>Осталось времени: <primary><time>'
 
 admin:
-  reloaded: '<green>Конфигурация PlayerGrowth перезагружена.</green>'
+  reloaded: '<primary>Конфигурация <secondary>PlayerGrowth</secondary> перезагружена.</primary>'
 
 help:
-  header: '<gold>--- Команды PlayerGrowth ---</gold>'
-  entry: '<yellow><syntax></yellow> <gray>-</gray> <white><description></white>'
+  header: '<primary>--- Команды PlayerGrowth ---</primary>'
+  entry: '<secondary><syntax> - <primary><description>'
   height: 'Установить свой рост, в метрах.'
   height-remove: 'Сбросить свой индивидуальный рост.'
   height-set-others: 'Установить рост другого игрока, в метрах.'

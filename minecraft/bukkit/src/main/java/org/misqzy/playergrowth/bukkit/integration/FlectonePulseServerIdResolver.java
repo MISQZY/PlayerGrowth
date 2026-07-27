@@ -1,5 +1,6 @@
 package org.misqzy.playergrowth.bukkit.integration;
 
+import net.flectone.pulse.util.file.FileFacade;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -8,14 +9,14 @@ import org.misqzy.playergrowth.bukkit.config.YamlFileLoader;
 import java.io.File;
 
 /**
- * If FlectonePulse is installed and enabled, its own {@code config.yml}
- * carries a network-wide {@code server} identifier (added in FlectonePulse
- * 1.10.0, used there for cross-server ban/mute/warn filtering - see
+ * If FlectonePulse is installed and enabled, its own config carries a
+ * network-wide {@code server} identifier (added in FlectonePulse 1.10.0,
+ * used there for cross-server ban/mute/warn filtering - see
  * {@code net.flectone.pulse.config.Config#server}) that serves exactly the
- * same purpose as PlayerGrowth's own {@code network.server}. Reusing it
- * instead of a separately-configured PlayerGrowth value keeps the two plugins from
- * silently disagreeing about which backend server they're each running on
- * when both are present in the same network.
+ * same purpose as PlayerGrowth's own top-level {@code server} key. Reusing it
+ * instead of a separately-configured PlayerGrowth value keeps the two
+ * plugins from silently disagreeing about which backend server they're each
+ * running on when both are present in the same network.
  *
  * <p>Despite FlectonePulse's changelog calling this a "server UUID", the
  * underlying config field is a plain {@code String} (not a parsed
@@ -24,10 +25,12 @@ import java.io.File;
  * whatever free-form value the admin put in FlectonePulse's config, so it's
  * treated as an opaque string here too.</p>
  *
- * <p>This reads FlectonePulse's config.yml directly off disk via its own
- * {@link Plugin#getDataFolder()} rather than calling into any FlectonePulse
- * Java API - FlectonePulse doesn't publish one for this, and depending on
- * its internal classes would break on every FlectonePulse update.</p>
+ * <p>Prefers reading it through {@link FlectonePulseAccess} (FlectonePulse's
+ * own live, parsed config, via its Java API) over reading its config.yml
+ * directly off disk - the API path can't drift out of sync with an
+ * in-memory {@code /flectonepulse reload}, and doesn't need this class to
+ * re-implement FlectonePulse's own YAML parsing. The file read is kept as a
+ * fallback for FlectonePulse versions that predate this API.</p>
  */
 public final class FlectonePulseServerIdResolver {
 
@@ -37,6 +40,25 @@ public final class FlectonePulseServerIdResolver {
 
     /** Returns FlectonePulse's configured server id, or {@code fallback} if FlectonePulse isn't present/configured. */
     public static String resolve(JavaPlugin plugin, String fallback) {
+        String viaApi = resolveViaApi();
+        if (viaApi != null) {
+            plugin.getLogger().info("Using FlectonePulse's configured server id (\"" + viaApi
+                    + "\") instead of the server key from PlayerGrowth's own config.yml.");
+            return viaApi;
+        }
+
+        return resolveViaConfigFile(plugin, fallback);
+    }
+
+    private static String resolveViaApi() {
+        FileFacade fileFacade = FlectonePulseAccess.tryGetFileFacade();
+        if (fileFacade == null) return null;
+
+        String serverId = fileFacade.config().server();
+        return (serverId == null || serverId.isBlank()) ? null : serverId;
+    }
+
+    private static String resolveViaConfigFile(JavaPlugin plugin, String fallback) {
         Plugin flectonePulse = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
         if (flectonePulse == null || !flectonePulse.isEnabled()) return fallback;
 
@@ -48,11 +70,11 @@ public final class FlectonePulseServerIdResolver {
             if (serverId == null || serverId.isBlank()) return fallback;
 
             plugin.getLogger().info("Using FlectonePulse's configured server id (\"" + serverId
-                    + "\") instead of network.server from PlayerGrowth's own config.yml.");
+                    + "\") instead of the server key from PlayerGrowth's own config.yml.");
             return serverId;
         } catch (RuntimeException e) {
             plugin.getLogger().warning("Found FlectonePulse but could not read its config.yml server id: "
-                    + e.getMessage() + " - falling back to PlayerGrowth's own network.server.");
+                    + e.getMessage() + " - falling back to PlayerGrowth's own server key.");
             return fallback;
         }
     }

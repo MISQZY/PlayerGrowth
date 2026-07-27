@@ -18,8 +18,8 @@ import java.util.Map;
  */
 public interface ConfigMigrationStep {
 
-    /** The bundled {@code config-version} this step upgrades a file to. */
-    int targetVersion();
+    /** The bundled {@code version} (the plugin's own semver) this step upgrades a file to. */
+    String targetVersion();
 
     /** Which bundled resource file this step applies to, e.g. {@code "config.yml"}. */
     String resourceName();

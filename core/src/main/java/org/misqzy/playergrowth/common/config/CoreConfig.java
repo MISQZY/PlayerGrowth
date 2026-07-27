@@ -13,6 +13,8 @@ public final class CoreConfig {
     private final double minScale;
     private final double maxScale;
     private final String locale;
+    private final String primaryColor;
+    private final String secondaryColor;
 
     private final long growTimeSeconds;
     private final long growTimeMinSeconds;
@@ -39,6 +41,8 @@ public final class CoreConfig {
         this.minScale = cfg.getDouble("scale.min", 0.3);
         this.maxScale = cfg.getDouble("scale.max", 1.0);
         this.locale = cfg.getString("locale", "en");
+        this.primaryColor = cfg.getString("colors.primary", "gold");
+        this.secondaryColor = cfg.getString("colors.secondary", "yellow");
 
         this.growTimeSeconds = cfg.getInt("growth.time-minutes", 2880) * 60L;
         this.growTimeMinSeconds = cfg.getInt("growth.time-min-minutes", 0) * 60L;
@@ -72,6 +76,8 @@ public final class CoreConfig {
     public double minScale() { return minScale; }
     public double maxScale() { return maxScale; }
     public String locale() { return locale; }
+    public String primaryColor() { return primaryColor; }
+    public String secondaryColor() { return secondaryColor; }
 
     public boolean isRangeMode() {
         return growTimeMinSeconds > 0 && growTimeMaxSeconds > growTimeMinSeconds;

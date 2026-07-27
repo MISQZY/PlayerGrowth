@@ -40,9 +40,14 @@ client-side mod.
 - **Localized messages.** Bundled English and Russian translations, fully
   MiniMessage-formatted so colors and styling are easy to customize; more
   locales can be added by dropping in another `messages_<locale>.yml`.
+  Every message also supports `<primary>`/`<secondary>` theme-color tags
+  (configurable in `config.yml`, so the whole plugin can be reskinned from
+  one place) alongside any of MiniMessage's own tags.
 - **FlectonePulse-aware.** If FlectonePulse is installed, PlayerGrowth
-  automatically reuses its server identifier so the two plugins never
-  disagree about which backend server they're each running on.
+  reuses its server identifier (through its Java API, not by re-parsing its
+  config file) so the two plugins never disagree about which backend server
+  they're each running on, and messages can use FlectonePulse's own
+  `<fcolor:N>` color palette via the same tag it uses.
 
 ## Supported platforms
 

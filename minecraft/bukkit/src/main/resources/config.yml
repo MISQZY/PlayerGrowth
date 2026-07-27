@@ -1,11 +1,12 @@
-# Schema/migration counter for ConfigMigrator - unrelated to the plugin's own
-# version below, only bumps when config.yml's shape actually changes.
-config-version: 1
+# Auto-generated (a random UUID) and saved here on first run - leave blank
+# unless you need a specific value. Must stay unique per backend server.
+server: ''
 
-# The plugin version that generated this file. Kept in sync automatically on
-# every startup (see ConfigVersionStamper) - do not edit by hand, it will be
-# overwritten.
-plugin-version: '${pluginVersion}'
+# The plugin version that generated this file - also drives ConfigMigrator,
+# so a version mismatch here is what triggers merging in newly added config
+# keys on upgrade. Kept in sync automatically on every startup - do not edit
+# by hand, it will be overwritten.
+version: '${pluginVersion}'
 
 # Scale bounds applied to every gender unless overridden in gender.yml.
 scale:
@@ -14,6 +15,15 @@ scale:
 
 # Active locale; must match a file in localizations/messages_<locale>.yml.
 locale: en
+
+# Reusable theme colors - reference them in any localization message with
+# <primary>...</primary> / <secondary>...</secondary> instead of hardcoding
+# a color in every string, so the whole plugin can be reskinned from here.
+# Accepts a bare MiniMessage color name or hex ('gold', '#FFD700') or a full
+# tag for anything fancier, e.g. gradients ('<gradient:#FFD700:#FFA500>').
+colors:
+  primary: 'gold'
+  secondary: 'yellow'
 
 growth:
   # Minutes of played time to reach full growth (fixed mode).
@@ -47,6 +57,3 @@ network:
   # Enable to relay cache-invalidation messages across a network sharing
   # one database. Requires storage.type to be a shared backend (MYSQL/MARIADB).
   sync-enabled: false
-  # Auto-generated (a random UUID) and saved here on first run - leave blank
-  # unless you need a specific value. Must stay unique per backend server.
-  server: ''
