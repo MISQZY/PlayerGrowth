@@ -1,0 +1,83 @@
+package org.misqzy.playergrowth.common.config.migration;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Registry and runner for {@link ConfigMigrationStep}s.
+ *
+ * <p>Replaces the old "back the whole file up, then overwrite it with the
+ * bundled default" approach a {@code config-version} bump used to trigger:
+ * that lost every customisation in the file, not just whatever actually
+ * changed shape, on any bump - including ones as small as renaming a single
+ * key. Studying how FlectonePulse handles this (their {@code FileMigrator}
+ * runs one hand-written transform per version against their config's
+ * in-memory tree, then re-serialises the whole thing - so unrelated user
+ * values survive a version bump) is what this mirrors, scaled down: this
+ * project's config is a handful of scalar values behind a plain
+ * {@code Map<String, Object>}, not a deep Jackson record tree, so it
+ * doesn't need FlectonePulse's per-field wither-record machinery to get
+ * the same "don't lose what you didn't change" property.</p>
+ *
+ * <p>Two mechanisms, run in this order, per resource file:</p>
+ * <ol>
+ *   <li>Every registered {@link ConfigMigrationStep} for that file whose
+ *   {@code targetVersion()} falls in {@code (fromVersion, toVersion]} -
+ *   for renames, moves, and removals a generic merge can't express.</li>
+ *   <li>A deep merge of any key present in the bundled default but still
+ *   absent from the disk file afterwards - covers purely additive new
+ *   keys (the common case) without needing a step written for every one.
+ *   Only appropriate for resource files with a fixed, closed key set
+ *   (config.yml, the message files); deliberately <b>not</b> run for
+ *   {@code gender.yml}'s {@code types} section, which is an open,
+ *   user-owned map where a "missing" key usually means the admin removed
+ *   it on purpose, not that the file is stale.</li>
+ * </ol>
+ */
+public final class ConfigMigrations {
+
+    /**
+     * Registered steps, in no particular order (each is independently
+     * filtered by resource file and version range). Empty for now - there
+     * is no pending schema change to migrate from; this is the
+     * infrastructure a future {@code config-version} bump would register a
+     * step into, not a currently-exercised code path.
+     */
+    private static final List<ConfigMigrationStep> STEPS = List.of();
+
+    private ConfigMigrations() {}
+
+    /**
+     * @param resourceName     e.g. {@code "config.yml"} - only steps registered for this file run
+     * @param disk             the on-disk file's parsed tree, mutated in place
+     * @param bundled          the jar's bundled default for the same file, used as the merge source
+     * @param fromVersion      the disk file's current {@code config-version}
+     * @param toVersion        the bundled default's {@code config-version}
+     * @param mergeMissingKeys whether to deep-merge bundled keys absent from {@code disk} afterwards
+     */
+    public static void apply(String resourceName, Map<String, Object> disk, Map<String, Object> bundled,
+                              int fromVersion, int toVersion, boolean mergeMissingKeys) {
+        for (ConfigMigrationStep step : STEPS) {
+            if (!step.resourceName().equals(resourceName)) continue;
+            if (step.targetVersion() <= fromVersion || step.targetVersion() > toVersion) continue;
+            step.apply(disk);
+        }
+
+        if (mergeMissingKeys) {
+            mergeMissing(disk, bundled);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void mergeMissing(Map<String, Object> target, Map<String, Object> source) {
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            String key = entry.getKey();
+            Object sourceValue = entry.getValue();
+            if (!target.containsKey(key)) {
+                target.put(key, sourceValue);
+            } else if (sourceValue instanceof Map<?, ?> && target.get(key) instanceof Map<?, ?>) {
+                mergeMissing((Map<String, Object>) target.get(key), (Map<String, Object>) sourceValue);
+            }
+        }
+    }
+}

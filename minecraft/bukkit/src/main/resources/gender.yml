@@ -1,0 +1,13 @@
+# Configurable gender variants. Each has its own maximum growth scale, so
+# networks can give e.g. "female" a lower max height than "male", or add
+# entirely custom, non-binary variants.
+enabled: true
+default: male
+
+types:
+  male:
+    max-scale: 1.0
+    aliases: [m, man, boy]
+  female:
+    max-scale: 0.9
+    aliases: [f, woman, girl]

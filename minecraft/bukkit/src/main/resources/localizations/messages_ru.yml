@@ -1,0 +1,59 @@
+# MiniMessage-formatted strings. See https://docs.advntr.dev/minimessage/format.html
+
+command:
+  players-only: '<red>Эта команда доступна только игрокам.</red>'
+  invalid-syntax: |-
+    <gray>|</gray>
+    <gray>|</gray> <red>Использование →</red>
+    <gray>|</gray> <yellow><syntax></yellow>
+    <gray>|</gray>
+
+height:
+  unit: 'м'
+  set: '<green>Рост <yellow><player></yellow> установлен на <yellow><value></yellow> м.</green>'
+  invalid: '<red>Рост должен быть между <yellow><min></yellow> и <yellow><max></yellow> м.</red>'
+  removed: '<green>Индивидуальный рост игрока <yellow><player></yellow> сброшен.</green>'
+  remove-failed: '<red>Не удалось сбросить рост.</red>'
+
+gender:
+  disabled: '<red>Пол отключён на этом сервере.</red>'
+  unknown: '<red>Неизвестный пол "<yellow><input></yellow>".</red>'
+  set: '<green>Пол игрока <yellow><player></yellow> установлен: <yellow><gender></yellow>.</green>'
+  set-failed: '<red>Не удалось установить пол.</red>'
+  display:
+    male: 'Мужской'
+    female: 'Женский'
+
+growth-info:
+  header: '<gold>--- Рост игрока <yellow><player></yellow> ---</gold>'
+  height: '<gray>Рост: <white><value> <unit></white> <dark_gray>(<gender>)</dark_gray></gray>'
+  gender: '<gray>Пол: <white><gender></white></gray>'
+  max-reached: '<green>Рост завершён.</green>'
+  remaining: '<gray>Осталось времени: <white><time></white></gray>'
+
+admin:
+  reloaded: '<green>Конфигурация PlayerGrowth перезагружена.</green>'
+
+help:
+  header: '<gold>--- Команды PlayerGrowth ---</gold>'
+  entry: '<yellow><syntax></yellow> <gray>-</gray> <white><description></white>'
+  height: 'Установить свой рост, в метрах.'
+  height-remove: 'Сбросить свой индивидуальный рост.'
+  height-set-others: 'Установить рост другого игрока, в метрах.'
+  height-remove-others: 'Сбросить индивидуальный рост другого игрока.'
+  gender: 'Установить свой пол.'
+  gender-others: 'Установить пол другого игрока.'
+  growth-summary: 'Посмотреть общую информацию о своём росте.'
+  growth-summary-others: 'Посмотреть общую информацию о росте другого игрока.'
+  growth-height: 'Посмотреть информацию о своём росте (только рост).'
+  growth-height-others: 'Посмотреть информацию о росте другого игрока (только рост).'
+  growth-gender: 'Посмотреть информацию о своём поле.'
+  growth-gender-others: 'Посмотреть информацию о поле другого игрока.'
+  reload: 'Перезагрузить конфигурацию PlayerGrowth.'
+  help: 'Показать это сообщение помощи.'
+
+time:
+  days: 'д'
+  hours: 'ч'
+  mins: 'м'
+  seconds: 'с'

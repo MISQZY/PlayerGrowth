@@ -1,0 +1,59 @@
+# MiniMessage-formatted strings. See https://docs.advntr.dev/minimessage/format.html
+
+command:
+  players-only: '<red>This command can only be used by a player.</red>'
+  invalid-syntax: |-
+    <gray>|</gray>
+    <gray>|</gray> <red>Usage →</red>
+    <gray>|</gray> <yellow><syntax></yellow>
+    <gray>|</gray>
+
+height:
+  unit: 'm'
+  set: '<green>Set <yellow><player></yellow>''s height to <yellow><value></yellow> m.</green>'
+  invalid: '<red>Height must be between <yellow><min></yellow> and <yellow><max></yellow> m.</red>'
+  removed: '<green><yellow><player></yellow>''s custom height was removed.</green>'
+  remove-failed: '<red>Failed to remove custom height.</red>'
+
+gender:
+  disabled: '<red>Genders are disabled on this server.</red>'
+  unknown: '<red>Unknown gender "<yellow><input></yellow>".</red>'
+  set: '<green><yellow><player></yellow>''s gender set to <yellow><gender></yellow>.</green>'
+  set-failed: '<red>Failed to set gender.</red>'
+  display:
+    male: 'Male'
+    female: 'Female'
+
+growth-info:
+  header: '<gold>--- <yellow><player></yellow>''s growth ---</gold>'
+  height: '<gray>Height: <white><value> <unit></white> <dark_gray>(<gender>)</dark_gray></gray>'
+  gender: '<gray>Gender: <white><gender></white></gray>'
+  max-reached: '<green>Fully grown.</green>'
+  remaining: '<gray>Time remaining: <white><time></white></gray>'
+
+admin:
+  reloaded: '<green>PlayerGrowth configuration reloaded.</green>'
+
+help:
+  header: '<gold>--- PlayerGrowth commands ---</gold>'
+  entry: '<yellow><syntax></yellow> <gray>-</gray> <white><description></white>'
+  height: 'Set your own height, in meters.'
+  height-remove: 'Remove your custom height.'
+  height-set-others: 'Set another player''s height, in meters.'
+  height-remove-others: 'Remove another player''s custom height.'
+  gender: 'Set your own gender.'
+  gender-others: 'Set another player''s gender.'
+  growth-summary: 'View your own growth summary.'
+  growth-summary-others: 'View another player''s growth summary.'
+  growth-height: 'View your own height info.'
+  growth-height-others: 'View another player''s height info.'
+  growth-gender: 'View your own gender info.'
+  growth-gender-others: 'View another player''s gender info.'
+  reload: 'Reload the PlayerGrowth configuration.'
+  help: 'Show this help message.'
+
+time:
+  days: 'd'
+  hours: 'h'
+  mins: 'm'
+  seconds: 's'

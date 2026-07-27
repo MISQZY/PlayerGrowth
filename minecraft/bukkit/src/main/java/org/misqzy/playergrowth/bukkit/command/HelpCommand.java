@@ -1,0 +1,64 @@
+package org.misqzy.playergrowth.bukkit.command;
+
+import org.bukkit.command.CommandSender;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Permission;
+import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Lists every PlayerGrowth command the sender has permission to use.
+ *
+ * <p>Deliberately a hand-maintained list rather than introspecting Cloud's
+ * command tree/{@code HelpHandler} at runtime: reconstructing a syntax
+ * string from a {@code Command<C>} needs a {@code CommandSyntaxFormatter}
+ * plus a {@code CommandNode}, and this session already hit two Cloud
+ * runtime behaviours (a {@code SenderMapper} type-inference surprise, an
+ * {@code AmbiguousNodeException}) that only surfaced on a live server, not
+ * a local compile. A static list is trivially correct and easy to keep in
+ * sync by eye against the other classes in this package.</p>
+ */
+public final class HelpCommand {
+
+    private record Entry(String permission, String syntax, String descriptionKey) {}
+
+    private static final List<Entry> ENTRIES = List.of(
+            new Entry("playergrowth.height", "/height <meters>", "help.height"),
+            new Entry("playergrowth.height", "/height remove", "help.height-remove"),
+            new Entry("playergrowth.height.others", "/height set <target> <meters>", "help.height-set-others"),
+            new Entry("playergrowth.height.others", "/height remove <target>", "help.height-remove-others"),
+            new Entry("playergrowth.gender", "/gender <type>", "help.gender"),
+            new Entry("playergrowth.gender.others", "/gender set <target> <type>", "help.gender-others"),
+            new Entry("playergrowth.info", "/growth summary", "help.growth-summary"),
+            new Entry("playergrowth.info.others", "/growth summary <target>", "help.growth-summary-others"),
+            new Entry("playergrowth.info", "/growth height", "help.growth-height"),
+            new Entry("playergrowth.info.others", "/growth height <target>", "help.growth-height-others"),
+            new Entry("playergrowth.info", "/growth gender", "help.growth-gender"),
+            new Entry("playergrowth.info.others", "/growth gender <target>", "help.growth-gender-others"),
+            new Entry("playergrowth.admin.reload", "/playergrowth reload", "help.reload"),
+            new Entry(null, "/playergrowth help", "help.help")
+    );
+
+    private final PlayerGrowthCore core;
+
+    public HelpCommand(PlayerGrowthCore core) {
+        this.core = core;
+    }
+
+    @Command("playergrowth help")
+    @CommandDescription("Lists every PlayerGrowth command you can use.")
+    @Permission("playergrowth.help")
+    public void help(CommandSender sender) {
+        LegacyText.send(sender, core.messages().get("help.header"));
+        for (Entry entry : ENTRIES) {
+            if (entry.permission() != null && !sender.hasPermission(entry.permission())) continue;
+            LegacyText.send(sender, core.messages().get("help.entry", Map.of(
+                    "syntax", entry.syntax(),
+                    "description", core.messages().raw(entry.descriptionKey()))));
+        }
+    }
+}

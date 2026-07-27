@@ -1,11 +1,41 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-/target/
+# AI assistant instructions/config - never checked into this repo.
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
+.cursorignore
+.windsurfrules
+.aider*
+AGENTS.md
+.github/copilot-instructions.md
+.copilot/
+docs/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IntelliJ IDEA
 .idea/
 *.iml
-*.log
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# OS cruft
+.DS_Store
 Thumbs.db
-ehthumbs.db
-*.swp
-*~
+
+# Logs
+*.log

@@ -1,0 +1,52 @@
+# Schema/migration counter for ConfigMigrator - unrelated to the plugin's own
+# version below, only bumps when config.yml's shape actually changes.
+config-version: 1
+
+# The plugin version that generated this file. Kept in sync automatically on
+# every startup (see ConfigVersionStamper) - do not edit by hand, it will be
+# overwritten.
+plugin-version: '${pluginVersion}'
+
+# Scale bounds applied to every gender unless overridden in gender.yml.
+scale:
+  min: 0.3
+  max: 1.0
+
+# Active locale; must match a file in localizations/messages_<locale>.yml.
+locale: en
+
+growth:
+  # Minutes of played time to reach full growth (fixed mode).
+  time-minutes: 2880
+  # Range mode: if both are > 0 and max > min, each player is assigned a
+  # random target (in minutes) on first join instead of the fixed value
+  # above, persisted so it survives restarts/relogs.
+  time-min-minutes: 0
+  time-max-minutes: 0
+  auto-growth: true
+  update-interval-seconds: 5.0
+  pause-when-boxed-in: true
+
+storage:
+  # H2 (default, no setup needed), MYSQL, MARIADB, or YAML.
+  type: H2
+  database:
+    host: localhost
+    port: 3306
+    name: playergrowth
+    username: root
+    password: ''
+    pool:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+network:
+  # Enable to relay cache-invalidation messages across a network sharing
+  # one database. Requires storage.type to be a shared backend (MYSQL/MARIADB).
+  sync-enabled: false
+  # Auto-generated (a random UUID) and saved here on first run - leave blank
+  # unless you need a specific value. Must stay unique per backend server.
+  server: ''
