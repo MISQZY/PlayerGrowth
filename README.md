@@ -31,6 +31,10 @@ client-side mod.
   covering current/min/max height (in meters and as a raw scale value),
   gender, growth percentage, time remaining, and custom-scale status —
   documented in-game via `/papi info playergrowth`.
+- **API for other plugins.** A typed, read-only Java API (`PlayerGrowthAPI`)
+  registered through Bukkit's `ServicesManager`, exposing the same
+  height/gender/growth-progress data as the placeholders above without
+  needing PlaceholderAPI installed or string parsing.
 - **Configurable storage.** H2 (zero-setup, the default), MySQL, MariaDB, or
   plain YAML files.
 - **Localized messages.** Bundled English and Russian translations, fully

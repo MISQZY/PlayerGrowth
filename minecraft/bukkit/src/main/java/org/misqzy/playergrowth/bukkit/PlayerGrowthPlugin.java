@@ -2,6 +2,7 @@ package org.misqzy.playergrowth.bukkit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playergrowth.common.config.ConfigView;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
@@ -9,6 +10,8 @@ import org.misqzy.playergrowth.common.network.NetworkMessenger;
 import org.misqzy.playergrowth.common.platform.PlatformPlayer;
 import org.misqzy.playergrowth.common.platform.PlayerLookup;
 import org.misqzy.playergrowth.common.platform.Scheduler;
+import org.misqzy.playergrowth.bukkit.api.PlayerGrowthAPI;
+import org.misqzy.playergrowth.bukkit.api.PlayerGrowthAPIImpl;
 import org.misqzy.playergrowth.bukkit.command.CommandRegistry;
 import org.misqzy.playergrowth.bukkit.config.ConfigMigrator;
 import org.misqzy.playergrowth.bukkit.config.ConfigVersionStamper;
@@ -39,6 +42,8 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
         core = bootstrapCore();
 
+        Bukkit.getServicesManager().register(PlayerGrowthAPI.class, new PlayerGrowthAPIImpl(core), this, ServicePriority.Normal);
+
         Bukkit.getPluginManager().registerEvents(
                 new PlayerConnectionListener(this, core.growthEngine()), this);
 
@@ -55,6 +60,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        Bukkit.getServicesManager().unregisterAll(this);
         if (ticker != null) ticker.stop();
         if (placeholderHook != null) placeholderHook.unregister();
         if (networkMessenger != null) networkMessenger.unregister();
