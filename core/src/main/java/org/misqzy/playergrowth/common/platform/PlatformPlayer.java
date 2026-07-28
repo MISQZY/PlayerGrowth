@@ -5,7 +5,7 @@ import net.kyori.adventure.text.Component;
 import java.util.UUID;
 
 /**
- * Minimal player contract the growth engine needs. Only the Paper module
+ * Minimal player contract the growth engine needs. Only the Bukkit module
  * implements it today (scale is a Bukkit Attribute API concept), but the
  * interface itself carries no Bukkit types so nothing stops another
  * platform with entity access (e.g. a future Fabric module) from

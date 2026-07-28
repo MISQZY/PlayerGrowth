@@ -8,10 +8,11 @@ import org.misqzy.playergrowth.common.platform.Scheduler;
 
 /**
  * {@code org.bukkit.scheduler.BukkitScheduler}-backed {@link Scheduler} -
- * plain Bukkit API, so it works unmodified on Spigot/CraftBukkit as well as
- * Paper. Folia (a Paper fork) isn't a concern here: this module targets the
- * standard Bukkit API surface, which Folia doesn't implement at all - Folia
- * users should run {@code minecraft:paper} instead.
+ * plain Bukkit API, so it works unmodified on Spigot/CraftBukkit, Paper,
+ * and forks like Purpur. Folia (a Paper fork) is not supported: it doesn't
+ * implement the classic {@code BukkitScheduler} at all for entity-affecting
+ * work, which would need per-entity region-scheduler calls instead - see
+ * {@code docs/ARCHITECTURE.md}'s "Known, accepted limitations".
  */
 public final class BukkitScheduler implements Scheduler {
 

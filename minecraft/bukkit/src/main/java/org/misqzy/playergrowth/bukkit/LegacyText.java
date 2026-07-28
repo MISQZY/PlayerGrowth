@@ -1,5 +1,6 @@
 package org.misqzy.playergrowth.bukkit;
 
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -7,10 +8,29 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.command.CommandSender;
 
 /**
- * Vanilla Spigot/CraftBukkit's {@code CommandSender} has no
- * {@code sendMessage(Component)} overload - that's a Paper-only addition -
- * so every message this module sends is serialised to a legacy
- * {@code §}-formatted string first. See the dependency comment in
+ * The single message-delivery path this module uses, on any Bukkit-API
+ * server (Spigot, CraftBukkit, Paper, Purpur, ...) - this module is compiled
+ * only against {@code spigot-api}, never {@code paper-api}, so it has to
+ * work on the lowest common denominator by default.
+ *
+ * <p><b>Native Adventure delivery (the Paper-only optimization).</b> Before
+ * falling back to legacy serialization, {@link #send} checks whether the
+ * runtime {@code CommandSender} implements Adventure's {@link Audience} -
+ * true for Paper/Purpur's own {@code CommandSender} implementation, false
+ * for plain Spigot/CraftBukkit's. This needs no {@code paper-api} dependency
+ * at all: {@code Audience} lives in {@code adventure-api}, already a
+ * dependency here for MiniMessage, not in {@code paper-api}. When it's
+ * available, {@code audience.sendMessage(component)} sends the real
+ * {@link Component} directly - no serialization round-trip, and unlike the
+ * legacy path below, hover/click events and true RGB survive intact. This is
+ * "Bukkit as the core, Paper only for optimizations" applied to message
+ * delivery: one code path, capability-detected at runtime, rather than a
+ * second module.</p>
+ *
+ * <p><b>Legacy fallback (the Bukkit-API baseline).</b> Vanilla Spigot/
+ * CraftBukkit's {@code CommandSender} has no {@code sendMessage(Component)}
+ * overload and isn't an {@code Audience}, so the message is serialised to a
+ * legacy {@code §}-formatted string first. See the dependency comment in
  * {@code build.gradle.kts} for why this is used instead of
  * {@code adventure-platform-bukkit}.
  *
@@ -21,11 +41,11 @@ import org.bukkit.command.CommandSender;
  * a multi-line message (e.g. {@code command.invalid-syntax}) arrived as
  * several separate chat entries instead of one message with line breaks.
  * The {@code BaseComponent[]} path sends the whole thing as a single packet
- * regardless of embedded newlines - the same guarantee minecraft:paper
- * already gets for free from {@code CommandSender#sendMessage(Component)}.
- * {@code bungeecord-chat}'s {@code TextComponent}/{@code BaseComponent}
- * come transitively from {@code spigot-api}, already a dependency here, so
- * this needs no new library.</p>
+ * regardless of embedded newlines - the same guarantee the native-Adventure
+ * path above already gets for free. {@code bungeecord-chat}'s
+ * {@code TextComponent}/{@code BaseComponent} come transitively from
+ * {@code spigot-api}, already a dependency here, so this needs no new
+ * library.</p>
  *
  * <p>{@code SERIALIZER} is built with {@code .hexColors()} +
  * {@code .useUnusualXRepeatedCharacterHexFormat()}, not the plain
@@ -43,7 +63,9 @@ import org.bukkit.command.CommandSender;
  * actually recognises. Verified end-to-end with a standalone harness: a
  * gradient round-tripped through this exact serializer + parser combination
  * came back with one distinct RGB color per character, not one flat color
- * for the whole span.</p>
+ * for the whole span. This path is now only reached on servers whose
+ * {@code CommandSender} isn't an {@code Audience} (plain Spigot/CraftBukkit),
+ * so it remains load-bearing rather than dead code.</p>
  */
 public final class LegacyText {
 
@@ -65,6 +87,11 @@ public final class LegacyText {
     // ChatColor) carry @Deprecated. Deliberate, not an oversight.
     @SuppressWarnings("deprecation")
     public static void send(CommandSender sender, Component component) {
+        if (sender instanceof Audience audience) {
+            audience.sendMessage(component);
+            return;
+        }
+
         BaseComponent[] parts = TextComponent.fromLegacyText(SERIALIZER.serialize(component));
         sender.spigot().sendMessage(parts);
     }

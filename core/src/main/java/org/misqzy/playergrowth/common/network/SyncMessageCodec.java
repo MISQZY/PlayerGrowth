@@ -6,11 +6,11 @@ import java.util.UUID;
 /**
  * Binary (de)serialisation for {@link SyncMessage}, deliberately written
  * with plain {@link DataOutputStream}/{@link DataInputStream} instead of a
- * Bukkit {@code ByteArrayDataOutput} so both the Paper and Bukkit modules
- * and the proxy module (Velocity) could decode the exact same bytes off
- * their respective plugin-messaging channel without any Bukkit dependency
- * on the proxy side, even though Velocity chooses not to (it relays the
- * raw bytes unmodified instead - see {@code docs/ARCHITECTURE.md}).
+ * Bukkit {@code ByteArrayDataOutput} so both the Bukkit module and the
+ * proxy module (Velocity) could decode the exact same bytes off their
+ * respective plugin-messaging channel without any Bukkit dependency on the
+ * proxy side, even though Velocity chooses not to (it relays the raw bytes
+ * unmodified instead - see {@code docs/ARCHITECTURE.md}).
  */
 public final class SyncMessageCodec {
 

@@ -21,13 +21,14 @@ import java.util.Map;
 /**
  * Wires every command class through one {@link BukkitCommandManager}.
  *
- * <p>Unlike minecraft:paper (which registers against Paper's native
- * Brigadier {@code CommandSourceStack}), this module targets plain
- * {@link CommandSender} via cloud-bukkit's legacy command manager - the
- * only command-registration API that works on stock Spigot/CraftBukkit,
- * not just Paper. {@code BukkitCommandManager}'s constructor is
- * {@code protected}, so it's instantiated through a trivial anonymous
- * subclass, matching Cloud's own documented usage pattern for this class.</p>
+ * <p>Targets plain {@link CommandSender} via cloud-bukkit's legacy command
+ * manager rather than Paper's native Brigadier {@code CommandSourceStack} -
+ * the only command-registration API that works on stock Spigot/CraftBukkit
+ * as well as Paper/Purpur, so one code path covers every Bukkit-API server
+ * instead of needing a second, Paper-only module.
+ * {@code BukkitCommandManager}'s constructor is {@code protected}, so it's
+ * instantiated through a trivial anonymous subclass, matching Cloud's own
+ * documented usage pattern for this class.</p>
  *
  * <p>The {@code height-values} suggestion provider reads {@code core}'s
  * live min/max scale on every call rather than a snapshot taken at

@@ -3,7 +3,7 @@ package org.misqzy.playergrowth.common.platform;
 import java.io.File;
 import java.util.logging.Logger;
 
-/** Handle to whatever platform (Paper, Bukkit, ...) hosts this module. */
+/** Handle to whatever platform (Bukkit-API server, proxy, ...) hosts this module. */
 public interface Platform {
 
     String name();

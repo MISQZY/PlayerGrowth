@@ -13,9 +13,11 @@ dependencies {
     implementation(project(":core"))
 
     // spigot-api (not paper-api) so this module only ever compiles against
-    // what plain Bukkit/CraftBukkit/Spigot actually provide - anything
-    // Paper-only used here would be a real bug in this module, not a
-    // hypothetical, since Paper users should run minecraft:paper instead.
+    // what plain Bukkit/CraftBukkit/Spigot actually provide - this is the
+    // single distributable module, installed unmodified on Spigot,
+    // CraftBukkit, Paper, and forks like Purpur. Where Paper genuinely
+    // offers something better (see LegacyText's Audience capability check),
+    // it's detected at runtime instead of adding a paper-api dependency.
     compileOnly("org.spigotmc:spigot-api:${project.findProperty("spigotVersion")}")
     compileOnly("me.clip:placeholderapi:${project.findProperty("placeholderapiVersion")}")
     // FlectonePulse's own published API module - see integration/FlectonePulseAccess.
@@ -36,16 +38,18 @@ dependencies {
     implementation("org.incendo:cloud-bukkit:${project.findProperty("cloudBukkitVersion")}")
     implementation("org.incendo:cloud-annotations:${project.findProperty("cloudCoreVersion")}")
 
-    // Vanilla Spigot/CraftBukkit does not bundle kyori Adventure or
-    // understand CommandSender#sendMessage(Component) the way Paper does -
-    // that's a Paper-only addition. Rather than pull in
-    // net.kyori:adventure-platform-bukkit as a bridge (its 4.4.1 release
-    // pins adventure-api 4.21.0, which conflicts with the 5.2.0 this
-    // project already depends on via core - verified live
-    // against its published pom.xml, not assumed), messages are serialised
-    // to legacy formatted strings (same adventure-api major version, no
-    // bridge needed) and sent via the plain CommandSender#sendMessage(String)
-    // every Bukkit implementation has always had. See LegacyText.
+    // Vanilla Spigot/CraftBukkit does not bundle kyori Adventure, and its
+    // CommandSender doesn't implement Audience the way Paper's does - see
+    // LegacyText's runtime capability check, which uses native Adventure
+    // delivery when available and falls back to legacy serialization
+    // otherwise. Rather than pull in net.kyori:adventure-platform-bukkit as
+    // a bridge for the fallback path (its 4.4.1 release pins adventure-api
+    // 4.21.0, which conflicts with the 5.2.0 this project already depends
+    // on via core - verified live against its published pom.xml, not
+    // assumed), the fallback serialises to legacy formatted strings (same
+    // adventure-api major version, no bridge needed) and sends via
+    // CommandSender#spigot().sendMessage(BaseComponent...), which every
+    // Bukkit implementation has always had.
     implementation("net.kyori:adventure-api:${project.findProperty("adventureVersion")}")
     implementation("net.kyori:adventure-text-minimessage:${project.findProperty("adventureVersion")}")
     implementation("net.kyori:adventure-text-serializer-legacy:${project.findProperty("adventureVersion")}")
@@ -69,8 +73,9 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     // minimize() is deliberately NOT used: it depends on org.vafer:jdependency,
     // which bundles an ASM version that cannot parse Java 25 class files
     // ("Unsupported class file major version 69") - a real failure hit
-    // against current paper-api, not a hypothetical. It only trims shaded-jar
-    // size, not correctness, so it's dropped until that tooling catches up.
+    // against this project's Java-25 toolchain, not a hypothetical. It only
+    // trims shaded-jar size, not correctness, so it's dropped until that
+    // tooling catches up.
 }
 
 tasks.build {

@@ -16,11 +16,13 @@ import java.util.regex.Pattern;
 /**
  * Loads and renders MiniMessage strings from a localisation file into a
  * platform-agnostic {@link Component}. How that {@link Component} actually
- * reaches a player is up to the platform module: Paper's {@code CommandSender}
- * implements kyori's {@code Audience} natively, while Bukkit/Spigot has no
- * such support, so the Bukkit module serialises to a legacy formatted
- * string before sending (see {@code LegacyText} there). Either way, every
- * platform starts from the exact same {@link Component} this class produces.
+ * reaches a player is up to the platform module: on Paper/Purpur the
+ * runtime {@code CommandSender} implements kyori's {@code Audience}
+ * natively, while plain Spigot/CraftBukkit has no such support, so the
+ * Bukkit module detects that at runtime and serialises to a legacy
+ * formatted string before sending only when it's missing (see
+ * {@code LegacyText} there). Either way, every platform starts from the
+ * exact same {@link Component} this class produces.
  *
  * <p>Every message also gets two theme-color tags, resolved as real
  * MiniMessage {@link TagResolver}s (not a hand-rolled pre-processing regex -

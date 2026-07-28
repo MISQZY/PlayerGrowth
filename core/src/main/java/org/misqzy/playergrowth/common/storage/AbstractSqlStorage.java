@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  * Shared JDBC/HikariCP plumbing for the MySQL and MariaDB backends. Unlike
  * the original version this has no dependency on {@code org.bukkit.plugin.Plugin} -
  * it only needs a {@link Logger}, which every platform module that depends
- * on core (currently Paper and Bukkit) can hand it.
+ * on core (currently just the Bukkit module) can hand it.
  */
 public abstract class AbstractSqlStorage implements Storage {
 

@@ -51,7 +51,6 @@ subprojects {
     // that needs it, from the same property, so there is exactly one place
     // (`gradle.properties`) anyone ever edits the version.
     val buildVersionPackages = mapOf(
-        "paper" to "org.misqzy.playergrowth.paper",
         "bukkit" to "org.misqzy.playergrowth.bukkit",
         "velocity" to "org.misqzy.playergrowth.velocity",
     )
@@ -82,7 +81,7 @@ subprojects {
 
     // Gradle's default jar/shadowJar output name is the project's own
     // directory name - with the core/minecraft/{platform} layout that's
-    // just "paper.jar", "bukkit.jar", etc, which is far too generic for a
+    // just "bukkit.jar", "velocity.jar", etc, which is far too generic for a
     // jar someone drops into a plugins/ folder alongside a dozen others.
     // Reuses buildVersionPackages' keys since it's the same "which projects
     // are actual distributable platform plugins" set.

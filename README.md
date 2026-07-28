@@ -53,13 +53,11 @@ client-side mod.
 
 | Module | Use when... |
 |---|---|
-| `minecraft/paper` | You run Paper (or a fork of it, e.g. Purpur) and want full support. |
-| `minecraft/bukkit` | You run plain Spigot/CraftBukkit, or Paper without needing its extras. |
+| `minecraft/bukkit` | Your backend server — works unmodified on Spigot, CraftBukkit, Paper, Purpur, and any other Bukkit-API server software. Detects Paper's native Adventure support at runtime and uses it automatically when available, with no separate build needed for Paper. |
 | `minecraft/velocity` | You run a Velocity proxy and want cross-server sync between backend servers. Optional — skip it entirely on a single-server setup. |
 
-Install exactly one of `minecraft/paper` / `minecraft/bukkit` on each
-backend server, matching your server software — never both at once. There
-is no BungeeCord support; Velocity is the only supported proxy.
+Install `minecraft/bukkit` on every backend server. There is no BungeeCord
+support; Velocity is the only supported proxy.
 
 ## Commands
 
@@ -92,6 +90,6 @@ automatically on version upgrades without losing customizations.
 ./gradlew build
 ```
 
-Builds all four modules. Each platform module produces a shaded jar under
-its own `build/libs/` (e.g. `PlayerGrowth-Paper-<version>.jar`) ready to
+Builds all three modules. Each platform module produces a shaded jar under
+its own `build/libs/` (e.g. `PlayerGrowth-Bukkit-<version>.jar`) ready to
 drop into a `plugins/` folder.
