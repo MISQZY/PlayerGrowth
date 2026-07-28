@@ -58,7 +58,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
         new CommandRegistry(this, core);
 
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") && core.integrations().placeholderApiEnabled()) {
             placeholderHook = new PlaceholderAPIHook(core);
             placeholderHook.register();
         }
@@ -109,8 +109,10 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
             new ConfigMigrator(this).migrateIfNeeded();
 
             ConfigView mainConfig = loadConfig("config.yml");
-            FlectonePulseHealthCheck.logSummary(this);
-            core.reload(mainConfig, loadConfig("gender.yml"), loadAllMessages(), FlectonePulseColorResolver::resolveDefaultColors);
+            ConfigView integrationsConfig = loadConfig("integrations.yml");
+            FlectonePulseHealthCheck.logSummary(this, integrationsConfig);
+            core.reload(mainConfig, loadConfig("gender.yml"), loadAllMessages(), integrationsConfig,
+                    () -> FlectonePulseColorResolver.resolveDefaultColors(integrationsConfig));
 
             scheduler.runSync(() -> {
                 if (ticker != null) ticker.restart();
@@ -131,6 +133,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
     private PlayerGrowthCore bootstrapCore() {
         ConfigView mainConfig = loadConfig("config.yml");
+        ConfigView integrationsConfig = loadConfig("integrations.yml");
 
         scheduler = new BukkitScheduler(this);
 
@@ -146,14 +149,14 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         PlayerLookup lookup = this::findOnline;
 
         String configuredServerId = ServerIdProvisioner.resolveOrGenerate(this, mainConfig);
-        String serverId = FlectonePulseServerIdResolver.resolve(this, configuredServerId);
+        String serverId = FlectonePulseServerIdResolver.resolve(this, configuredServerId, integrationsConfig);
         ServerIdProvisioner.persistIfChanged(this, configuredServerId, serverId);
         BukkitPlatform platform = new BukkitPlatform(this, scheduler, serverId);
         BukkitModule bukkitModule = new BukkitModule(scheduler, messenger, lookup);
 
-        FlectonePulseHealthCheck.logSummary(this);
+        FlectonePulseHealthCheck.logSummary(this, integrationsConfig);
         return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadAllMessages(),
-                FlectonePulseColorResolver::resolveDefaultColors);
+                integrationsConfig, () -> FlectonePulseColorResolver.resolveDefaultColors(integrationsConfig));
     }
 
     private PlatformPlayer findOnline(UUID uuid) {

@@ -6,6 +6,7 @@ import net.flectone.pulse.service.FPlayerService;
 import net.flectone.pulse.util.file.FileFacade;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.misqzy.playergrowth.common.config.ConfigView;
 
 import java.util.logging.Logger;
 
@@ -32,8 +33,14 @@ public final class FlectonePulseHealthCheck {
 
     private FlectonePulseHealthCheck() {}
 
-    public static void logSummary(JavaPlugin plugin) {
+    public static void logSummary(JavaPlugin plugin, ConfigView integrations) {
         Logger logger = plugin.getLogger();
+
+        if (!integrations.getBoolean("flectonepulse.enabled", true)) {
+            logger.info("[FlectonePulse] Every integration disabled via integrations.yml's "
+                    + "flectonepulse.enabled - PlayerGrowth works standalone.");
+            return;
+        }
 
         if (!Bukkit.getPluginManager().isPluginEnabled("FlectonePulse")) {
             logger.info("[FlectonePulse] Not installed/enabled - every integration (fcolor palette, server-id "
@@ -43,7 +50,10 @@ public final class FlectonePulseHealthCheck {
 
         // Reuses the existing, more detailed fcolor-specific report rather
         // than duplicating its "not ready yet / module disabled" branching.
-        FlectonePulseColorResolver.logDiagnostics(plugin);
+        FlectonePulseColorResolver.logDiagnostics(plugin, integrations);
+
+        boolean serverIdEnabled = integrations.getBoolean("flectonepulse.server-id", true);
+        boolean dispatchEnabled = integrations.getBoolean("flectonepulse.message-dispatch", true);
 
         FileFacade fileFacade = FlectonePulseAccess.tryGetFileFacade();
         if (fileFacade == null) {
@@ -53,17 +63,26 @@ public final class FlectonePulseHealthCheck {
             return;
         }
 
-        String serverId = fileFacade.config().server();
-        logger.info("[FlectonePulse] server-id reuse " + (serverId == null || serverId.isBlank()
-                ? "inactive (FlectonePulse's own `server` config key is blank) - using PlayerGrowth's own."
-                : "active (using \"" + serverId + "\")."));
+        if (!serverIdEnabled) {
+            logger.info("[FlectonePulse] server-id reuse disabled via integrations.yml - using PlayerGrowth's own.");
+        } else {
+            String serverId = fileFacade.config().server();
+            logger.info("[FlectonePulse] server-id reuse " + (serverId == null || serverId.isBlank()
+                    ? "inactive (FlectonePulse's own `server` config key is blank) - using PlayerGrowth's own."
+                    : "active (using \"" + serverId + "\")."));
+        }
 
-        boolean dispatchReady = FlectonePulseAccess.tryGet(FPlayerService.class) != null
-                && FlectonePulseAccess.tryGet(MessagePipeline.class) != null
-                && FlectonePulseAccess.tryGet(MessageDispatcher.class) != null;
-        logger.info("[FlectonePulse] message dispatch integration " + (dispatchReady
-                ? "active - outgoing player messages try FlectonePulse's own pipeline first."
-                : "unavailable right now (FPlayerService/MessagePipeline/MessageDispatcher not reachable) - "
-                        + "messages will use local rendering only, until it is."));
+        if (!dispatchEnabled) {
+            logger.info("[FlectonePulse] message dispatch integration disabled via integrations.yml - "
+                    + "messages will use local rendering only.");
+        } else {
+            boolean dispatchReady = FlectonePulseAccess.tryGet(FPlayerService.class) != null
+                    && FlectonePulseAccess.tryGet(MessagePipeline.class) != null
+                    && FlectonePulseAccess.tryGet(MessageDispatcher.class) != null;
+            logger.info("[FlectonePulse] message dispatch integration " + (dispatchReady
+                    ? "active - outgoing player messages try FlectonePulse's own pipeline first."
+                    : "unavailable right now (FPlayerService/MessagePipeline/MessageDispatcher not reachable) - "
+                            + "messages will use local rendering only, until it is."));
+        }
     }
 }

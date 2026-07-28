@@ -4,6 +4,7 @@ import net.flectone.pulse.config.Message;
 import net.flectone.pulse.util.file.FileFacade;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.misqzy.playergrowth.common.config.ConfigView;
 
 import java.util.Map;
 import java.util.logging.Logger;
@@ -30,8 +31,17 @@ public final class FlectonePulseColorResolver {
 
     private FlectonePulseColorResolver() {}
 
-    /** FlectonePulse's configured default fcolor palette, or an empty map if unavailable/disabled. */
-    public static Map<Integer, String> resolveDefaultColors() {
+    /**
+     * FlectonePulse's configured default fcolor palette, or an empty map if
+     * unavailable/disabled - including disabled via {@code integrations.yml}'s
+     * {@code flectonepulse.enabled}/{@code flectonepulse.colors}.
+     */
+    public static Map<Integer, String> resolveDefaultColors(ConfigView integrations) {
+        if (!integrations.getBoolean("flectonepulse.enabled", true)
+                || !integrations.getBoolean("flectonepulse.colors", true)) {
+            return Map.of();
+        }
+
         FileFacade fileFacade = FlectonePulseAccess.tryGetFileFacade();
         if (fileFacade == null) return Map.of();
 
@@ -58,8 +68,14 @@ public final class FlectonePulseColorResolver {
      * disabled in FlectonePulse's own message.yml" (a FlectonePulse-side
      * config choice, not something a PlayerGrowth bug could fix).</p>
      */
-    public static void logDiagnostics(JavaPlugin plugin) {
+    public static void logDiagnostics(JavaPlugin plugin, ConfigView integrations) {
         Logger logger = plugin.getLogger();
+
+        if (!integrations.getBoolean("flectonepulse.enabled", true)
+                || !integrations.getBoolean("flectonepulse.colors", true)) {
+            logger.info("[FlectonePulse] fcolor integration disabled via integrations.yml - <fcolor:N> tags will be a no-op.");
+            return;
+        }
 
         if (!Bukkit.getPluginManager().isPluginEnabled("FlectonePulse")) {
             logger.info("[FlectonePulse] Not installed/enabled - <fcolor:N> tags will be a no-op.");

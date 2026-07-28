@@ -6,6 +6,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import org.misqzy.playergrowth.common.config.ConfigView;
 import org.misqzy.playergrowth.common.config.CoreConfig;
+import org.misqzy.playergrowth.common.config.IntegrationsConfig;
 import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.domain.GenderRegistry;
 import org.misqzy.playergrowth.common.lang.Messages;
@@ -35,6 +36,7 @@ public final class PlayerGrowthCore {
     // thread (see PlayerGrowthPlugin#reload) and swaps these in from there,
     // while commands/PAPI/etc. keep reading them on the main thread.
     private volatile CoreConfig config;
+    private volatile IntegrationsConfig integrations;
     private volatile Storage storage;
     private volatile GenderRegistry genderRegistry;
     private volatile Messages messages;
@@ -52,21 +54,25 @@ public final class PlayerGrowthCore {
      * @param messagesByLocale  every loaded {@code localizations/messages_<code>.yml}, keyed by locale code -
      *                          not just the configured default, so {@link Messages} can serve a specific
      *                          recipient's own locale (e.g. a player's Minecraft client locale) on demand
+     * @param integrationsConfigView parsed integrations.yml
      * @param fcolors           looks up FlectonePulse's configured {@code <fcolor:N>} palette on demand (empty if
      *                          unavailable/disabled) - a live lookup, not a value, since the platform module's
      *                          FlectonePulse detection can lag behind {@code onEnable()} by a beat (see {@link Messages})
      */
     public static PlayerGrowthCore bootstrap(Platform platform, Module platformModule,
                                               ConfigView mainConfigView, ConfigView genderConfigView,
-                                              Map<String, ConfigView> messagesByLocale, Supplier<Map<Integer, String>> fcolors) {
+                                              Map<String, ConfigView> messagesByLocale, ConfigView integrationsConfigView,
+                                              Supplier<Map<Integer, String>> fcolors) {
         PlayerGrowthCore core = new PlayerGrowthCore(platform);
-        core.buildAll(platformModule, mainConfigView, genderConfigView, messagesByLocale, fcolors);
+        core.buildAll(platformModule, mainConfigView, genderConfigView, messagesByLocale, integrationsConfigView, fcolors);
         return core;
     }
 
     private void buildAll(Module platformModule, ConfigView mainConfigView, ConfigView genderConfigView,
-                           Map<String, ConfigView> messagesByLocale, Supplier<Map<Integer, String>> fcolors) {
+                           Map<String, ConfigView> messagesByLocale, ConfigView integrationsConfigView,
+                           Supplier<Map<Integer, String>> fcolors) {
         this.config = new CoreConfig(mainConfigView);
+        this.integrations = new IntegrationsConfig(integrationsConfigView);
         this.storage = initStorage(platform.logger(), platform.dataFolder(), config);
         this.genderRegistry = new GenderRegistry(genderConfigView, config.maxScale());
         this.messages = new Messages(messagesByLocale, config.locale(), config.primaryColor(), config.secondaryColor(), fcolors);
@@ -105,7 +111,8 @@ public final class PlayerGrowthCore {
 
     /** Rebuilds config/storage/gender registry from freshly re-read files and hot-swaps them into the running engine. */
     public void reload(ConfigView mainConfigView, ConfigView genderConfigView,
-                        Map<String, ConfigView> messagesByLocale, Supplier<Map<Integer, String>> fcolors) {
+                        Map<String, ConfigView> messagesByLocale, ConfigView integrationsConfigView,
+                        Supplier<Map<Integer, String>> fcolors) {
         CoreConfig newConfig = new CoreConfig(mainConfigView);
         GenderRegistry newGenderRegistry = new GenderRegistry(genderConfigView, newConfig.maxScale());
 
@@ -117,6 +124,7 @@ public final class PlayerGrowthCore {
         }
 
         this.config = newConfig;
+        this.integrations = new IntegrationsConfig(integrationsConfigView);
         this.storage = newStorage;
         this.genderRegistry = newGenderRegistry;
         this.messages = new Messages(messagesByLocale, newConfig.locale(), newConfig.primaryColor(), newConfig.secondaryColor(), fcolors);
@@ -138,6 +146,10 @@ public final class PlayerGrowthCore {
 
     public CoreConfig config() {
         return config;
+    }
+
+    public IntegrationsConfig integrations() {
+        return integrations;
     }
 
     public GenderRegistry genderRegistry() {

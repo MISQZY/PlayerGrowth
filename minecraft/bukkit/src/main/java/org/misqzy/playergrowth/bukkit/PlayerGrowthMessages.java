@@ -44,7 +44,10 @@ public final class PlayerGrowthMessages {
 
         if (sender instanceof Player player) {
             String locale = clientLocale(messages, player);
-            if (tryFlectonePulseSend(player, messages, locale, key, placeholders)) return;
+            if (core.integrations().flectonePulseMessageDispatch()
+                    && tryFlectonePulseSend(player, messages, locale, key, placeholders)) {
+                return;
+            }
             LegacyText.send(sender, messages.get(locale, key, placeholders));
             return;
         }

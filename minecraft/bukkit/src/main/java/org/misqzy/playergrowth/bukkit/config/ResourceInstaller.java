@@ -15,6 +15,7 @@ public final class ResourceInstaller {
     private static final String[] RESOURCES = {
             "config.yml",
             "gender.yml",
+            "integrations.yml",
             "localizations/messages_en.yml",
             "localizations/messages_ru.yml"
     };

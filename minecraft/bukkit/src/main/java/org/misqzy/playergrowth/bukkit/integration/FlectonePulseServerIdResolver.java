@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playergrowth.bukkit.config.YamlFileLoader;
+import org.misqzy.playergrowth.common.config.ConfigView;
 
 import java.io.File;
 
@@ -38,8 +39,18 @@ public final class FlectonePulseServerIdResolver {
 
     private FlectonePulseServerIdResolver() {}
 
-    /** Returns FlectonePulse's configured server id, or {@code fallback} if FlectonePulse isn't present/configured. */
-    public static String resolve(JavaPlugin plugin, String fallback) {
+    /**
+     * Returns FlectonePulse's configured server id, or {@code fallback} if
+     * FlectonePulse isn't present/configured, or if {@code integrations}
+     * has {@code flectonepulse.enabled}/{@code flectonepulse.server-id} set
+     * to {@code false}.
+     */
+    public static String resolve(JavaPlugin plugin, String fallback, ConfigView integrations) {
+        if (!integrations.getBoolean("flectonepulse.enabled", true)
+                || !integrations.getBoolean("flectonepulse.server-id", true)) {
+            return fallback;
+        }
+
         String viaApi = resolveViaApi();
         if (viaApi != null) {
             plugin.getLogger().info("Using FlectonePulse's configured server id (\"" + viaApi

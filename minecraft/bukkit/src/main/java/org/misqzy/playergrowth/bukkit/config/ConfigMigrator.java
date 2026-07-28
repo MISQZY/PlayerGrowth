@@ -21,12 +21,13 @@ import java.nio.file.Files;
 import java.util.List;
 
 /**
- * Migrates every bundled resource file (config.yml, gender.yml, both locale
- * files) forward when config.yml's {@code version} is stale, by
- * transforming each on-disk composed tree in place rather than discarding
- * it - see {@link ConfigMigrations} for why and how. All four files share
- * config.yml's version rather than each tracking their own; there's
- * only one bundled "resource pack" version to be behind or caught up with.
+ * Migrates every bundled resource file (config.yml, gender.yml,
+ * integrations.yml, both locale files) forward when config.yml's {@code
+ * version} is stale, by transforming each on-disk composed tree in place
+ * rather than discarding it - see {@link ConfigMigrations} for why and how.
+ * All five files share config.yml's version rather than each tracking their
+ * own; there's only one bundled "resource pack" version to be behind or
+ * caught up with.
  *
  * <p>{@code version} is the plugin's own semver (e.g. {@code "0.1.1"}),
  * token-expanded into the bundled config.yml at build time - not a separate
@@ -57,6 +58,9 @@ public final class ConfigMigrator {
 
     /** Has a fixed, closed key set and admin-customisable values - safe to auto-merge any bundled key the disk copy is missing. */
     private static final String MAIN_CONFIG_RESOURCE = "config.yml";
+
+    /** Closed key set (one boolean per integration/submodule) - safe to auto-merge, same as config.yml. */
+    private static final String INTEGRATIONS_RESOURCE = "integrations.yml";
 
     /** Bundled translations - closed key set, merged the same way as config.yml so admin edits to existing keys survive an upgrade. */
     private static final List<String> LOCALIZATION_RESOURCES = List.of(
@@ -98,6 +102,7 @@ public final class ConfigMigrator {
             migrateOne(resource, onDiskVersion, bundledVersion, true);
         }
         migrateOne(GENDER_RESOURCE, onDiskVersion, bundledVersion, false);
+        migrateOne(INTEGRATIONS_RESOURCE, onDiskVersion, bundledVersion, true);
 
         plugin.getLogger().warning("Migrated PlayerGrowth's config files from version " + onDiskVersion
                 + " to " + bundledVersion + ". Every file was backed up (.bak.<timestamp>) first, with custom"
