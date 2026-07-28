@@ -11,32 +11,43 @@ import java.util.logging.Logger;
 /**
  * Platform glue around {@link UpdateChecker}: runs the GitHub check off the
  * main thread once per startup, logs a console warning if a newer version
- * is found, and notifies {@code playergrowth.update-notify} holders on join
- * afterwards. {@code update-checker.enabled} in {@code config.yml} (see
- * {@code CoreConfig#updateCheckerEnabled()}) gates both - re-checked live in
- * {@link #notifyIfPending} (not just once in {@link #checkAsync}), so
- * disabling it via {@code /playergrowth reload} silences further join
- * notifications immediately without a restart.
+ * is found, and - via {@link Notifier} - notifies {@code
+ * playergrowth.update-notify} holders on join afterwards.
+ * {@code update-checker.enabled} in {@code config.yml} (see
+ * {@code CoreConfig#updateCheckerEnabled()}) gates both; {@link Notifier}
+ * re-reads it live on every {@link #notifyIfPending} call, not just once in
+ * {@link #checkAsync}, so disabling it via {@code /playergrowth reload}
+ * silences further join notifications immediately without a restart.
  */
-public final class UpdateNotifier {
+public final class UpdateNotifier extends Notifier {
 
     private static final String REPO_OWNER = "MISQZY";
     private static final String REPO_NAME = "PlayerGrowth";
+    private static final String PERMISSION = "playergrowth.update-notify";
 
-    private final PlayerGrowthCore core;
     private final Scheduler scheduler;
     private final Logger logger;
 
     private volatile String availableVersion;
 
     public UpdateNotifier(PlayerGrowthCore core, Scheduler scheduler, Logger logger) {
-        this.core = core;
+        super(core);
         this.scheduler = scheduler;
         this.logger = logger;
     }
 
+    @Override
+    protected String permission() {
+        return PERMISSION;
+    }
+
+    @Override
+    protected boolean enabled() {
+        return core.config().updateCheckerEnabled();
+    }
+
     public void checkAsync() {
-        if (!core.config().updateCheckerEnabled()) return;
+        if (!enabled()) return;
 
         scheduler.runAsync(() ->
                 UpdateChecker.latestVersionIfNewer(REPO_OWNER, REPO_NAME, BuildVersion.VERSION, logger)
@@ -51,10 +62,8 @@ public final class UpdateNotifier {
     public void notifyIfPending(CommandSender sender) {
         String latest = availableVersion;
         if (latest == null) return;
-        if (!core.config().updateCheckerEnabled()) return;
-        if (!sender.hasPermission("playergrowth.update-notify")) return;
 
-        PlayerGrowthMessages.send(core, sender, "admin.update-available", Map.of(
+        notify(sender, "admin.update-available", Map.of(
                 "latest", latest,
                 "current", BuildVersion.VERSION));
     }
