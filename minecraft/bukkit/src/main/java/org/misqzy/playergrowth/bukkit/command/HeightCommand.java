@@ -13,7 +13,6 @@ import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
 
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Sets or clears a player's custom (manually fixed) growth scale.
@@ -38,7 +37,7 @@ public final class HeightCommand {
     @CommandDescription("Set your own height, in meters.")
     @Permission("playergrowth.height")
     public void setOwn(CommandSender sender, @Argument(value = "meters", suggestions = "height-values") double meters) {
-        requirePlayer(sender, player -> apply(player, player, meters));
+        CommandGuards.requirePlayer(core, sender, player -> apply(player, player, meters));
     }
 
     @Command("height set <target> <meters>")
@@ -53,7 +52,7 @@ public final class HeightCommand {
     @CommandDescription("Remove your custom height.")
     @Permission("playergrowth.height")
     public void removeOwn(CommandSender sender) {
-        requirePlayer(sender, player -> remove(player, player));
+        CommandGuards.requirePlayer(core, sender, player -> remove(player, player));
     }
 
     @Command("height remove <target>")
@@ -61,14 +60,6 @@ public final class HeightCommand {
     @Permission("playergrowth.height.others")
     public void removeOthers(CommandSender sender, @Argument("target") Player target) {
         remove(sender, target);
-    }
-
-    private void requirePlayer(CommandSender sender, Consumer<Player> action) {
-        if (sender instanceof Player player) {
-            action.accept(player);
-        } else {
-            PlayerGrowthMessages.send(core, sender, "command.players-only");
-        }
     }
 
     /**

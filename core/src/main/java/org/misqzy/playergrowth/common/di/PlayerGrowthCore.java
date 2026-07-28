@@ -6,10 +6,12 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import org.misqzy.playergrowth.common.config.ConfigView;
 import org.misqzy.playergrowth.common.config.CoreConfig;
+import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.domain.GenderRegistry;
 import org.misqzy.playergrowth.common.lang.Messages;
 import org.misqzy.playergrowth.common.network.NetworkMessenger;
 import org.misqzy.playergrowth.common.platform.Platform;
+import org.misqzy.playergrowth.common.platform.PlatformPlayer;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.storage.Storage;
 import org.misqzy.playergrowth.common.storage.StorageFactory;
@@ -137,6 +139,16 @@ public final class PlayerGrowthCore {
 
     public GenderRegistry genderRegistry() {
         return genderRegistry;
+    }
+
+    /** {@code gender}'s configured display name (falls back to its key if none is configured) - the composition every caller needs {@link GenderRegistry#resolveDisplayName} for, in one place instead of each re-wiring {@code messages()::raw} into it. */
+    public String genderDisplayName(Gender gender) {
+        return genderRegistry.resolveDisplayName(gender, messages::raw);
+    }
+
+    /** {@code player}'s *current* gender's display name - see {@link #genderDisplayName(Gender)}. */
+    public String genderDisplayName(PlatformPlayer player) {
+        return genderDisplayName(growthEngine().genderOf(player));
     }
 
     public Storage storage() {

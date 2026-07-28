@@ -35,11 +35,7 @@ public final class GrowthCommand {
     @CommandDescription("View your own growth summary.")
     @Permission("playergrowth.info")
     public void summaryOwn(CommandSender sender) {
-        if (sender instanceof Player player) {
-            showSummary(player, player);
-        } else {
-            PlayerGrowthMessages.send(core, sender, "command.players-only");
-        }
+        CommandGuards.requirePlayer(core, sender, player -> showSummary(player, player));
     }
 
     @Command("growth summary <target>")
@@ -53,11 +49,7 @@ public final class GrowthCommand {
     @CommandDescription("View your own height info.")
     @Permission("playergrowth.info")
     public void heightOwn(CommandSender sender) {
-        if (sender instanceof Player player) {
-            showHeight(player, player);
-        } else {
-            PlayerGrowthMessages.send(core, sender, "command.players-only");
-        }
+        CommandGuards.requirePlayer(core, sender, player -> showHeight(player, player));
     }
 
     @Command("growth height <target>")
@@ -71,11 +63,7 @@ public final class GrowthCommand {
     @CommandDescription("View your own gender info.")
     @Permission("playergrowth.info")
     public void genderOwn(CommandSender sender) {
-        if (sender instanceof Player player) {
-            showGender(player, player);
-        } else {
-            PlayerGrowthMessages.send(core, sender, "command.players-only");
-        }
+        CommandGuards.requirePlayer(core, sender, player -> showGender(player, player));
     }
 
     @Command("growth gender <target>")
@@ -106,10 +94,9 @@ public final class GrowthCommand {
     }
 
     private void sendGender(CommandSender sender, Player targetPlayer) {
-        GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
         PlayerGrowthMessages.send(core, sender, "growth-info.gender", Map.of(
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
+                "gender", core.genderDisplayName(target)));
     }
 
     /** Height value plus growth progress - progress is a height-growth metric, so it belongs with height, not the generic summary alone. */
@@ -117,13 +104,12 @@ public final class GrowthCommand {
         GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
 
-        Double scale = target.currentScale();
-        double current = scale != null ? scale : engine.minScale();
+        double current = engine.effectiveScale(target);
 
         PlayerGrowthMessages.send(core, sender, "growth-info.height", Map.of(
                 "value", ScaleMath.formatValue(current),
                 "unit", core.messages().heightUnit(),
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
+                "gender", core.genderDisplayName(target)));
 
         if (engine.isAtMaxGrowth(target)) {
             PlayerGrowthMessages.send(core, sender, "growth-info.max-reached");

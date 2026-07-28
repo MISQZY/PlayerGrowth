@@ -126,6 +126,12 @@ public final class GrowthEngine {
         return Math.max(0.01, Math.min(config.minScale(), config.maxScale()));
     }
 
+    /** The scale a player is actually at right now - their custom/growth-derived attribute value if set, else {@link #minScale()} as the starting point before it's ever been applied. */
+    public double effectiveScale(PlatformPlayer player) {
+        Double scale = player.currentScale();
+        return scale != null ? scale : minScale();
+    }
+
     public double maxScaleFor(PlatformPlayer player) {
         PlayerProfile profile = profiles.get(player.uuid());
         Gender gender = profile != null ? profile.gender() : genderRegistry.getDefault();

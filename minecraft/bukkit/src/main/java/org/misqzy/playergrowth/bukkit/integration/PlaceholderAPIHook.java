@@ -61,8 +61,7 @@ public final class PlaceholderAPIHook extends PlaceholderExpansion {
 
         GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(player);
-        Double scale = target.currentScale();
-        double current = scale != null ? scale : engine.minScale();
+        double current = engine.effectiveScale(target);
 
         return switch (params.toLowerCase()) {
             case "height" -> ScaleMath.formatValue(current);
@@ -72,7 +71,7 @@ public final class PlaceholderAPIHook extends PlaceholderExpansion {
             case "scale" -> ScaleMath.formatRaw(current);
             case "scale_min" -> ScaleMath.formatRaw(engine.minScale());
             case "scale_max" -> ScaleMath.formatRaw(engine.maxScaleFor(target));
-            case "gender" -> core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw);
+            case "gender" -> core.genderDisplayName(target);
             case "growth_remaining_seconds" -> String.valueOf(engine.secondsUntilFullGrowth(target));
             case "growth_remaining_formatted" -> TimeFormatter.format(engine.secondsUntilFullGrowth(target), core.messages());
             case "growth_percentage" -> ScaleMath.formatPercentage(engine.growthProgress(target));

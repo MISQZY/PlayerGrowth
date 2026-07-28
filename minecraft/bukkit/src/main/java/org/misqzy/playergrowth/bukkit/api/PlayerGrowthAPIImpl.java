@@ -26,18 +26,12 @@ public final class PlayerGrowthAPIImpl implements PlayerGrowthAPI {
 
     @Override
     public Optional<Double> getHeight(Player player) {
-        return query(player, (engine, target) -> {
-            Double scale = target.currentScale();
-            return ScaleMath.toMeters(scale != null ? scale : engine.minScale());
-        });
+        return query(player, (engine, target) -> ScaleMath.toMeters(engine.effectiveScale(target)));
     }
 
     @Override
     public Optional<Double> getScale(Player player) {
-        return query(player, (engine, target) -> {
-            Double scale = target.currentScale();
-            return scale != null ? scale : engine.minScale();
-        });
+        return query(player, GrowthEngine::effectiveScale);
     }
 
     @Override
@@ -57,8 +51,7 @@ public final class PlayerGrowthAPIImpl implements PlayerGrowthAPI {
 
     @Override
     public Optional<String> getGenderDisplayName(Player player) {
-        return query(player, (engine, target) ->
-                core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw));
+        return query(player, (engine, target) -> core.genderDisplayName(target));
     }
 
     @Override

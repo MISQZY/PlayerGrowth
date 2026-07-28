@@ -36,11 +36,7 @@ public final class GenderCommand {
     @CommandDescription("Set your own gender.")
     @Permission("playergrowth.gender")
     public void setOwn(CommandSender sender, @Argument(value = "type", suggestions = "gender-types") String type) {
-        if (sender instanceof Player player) {
-            apply(player, player, type);
-        } else {
-            PlayerGrowthMessages.send(core, sender, "command.players-only");
-        }
+        CommandGuards.requirePlayer(core, sender, player -> apply(player, player, type));
     }
 
     @Command("gender set <target> <type>")
@@ -68,7 +64,7 @@ public final class GenderCommand {
         engine.setGender(target, gender,
                 () -> PlayerGrowthMessages.send(core, sender, "gender.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "gender", registry.resolveDisplayName(gender, core.messages()::raw))),
+                        "gender", core.genderDisplayName(gender))),
                 () -> PlayerGrowthMessages.send(core, sender, "gender.set-failed"));
     }
 }
