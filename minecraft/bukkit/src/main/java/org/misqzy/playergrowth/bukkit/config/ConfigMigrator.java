@@ -18,6 +18,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -72,6 +74,9 @@ public final class ConfigMigrator {
     /** No {@code version} on disk at all (an install from before this field existed) - always stale. */
     private static final String UNKNOWN_VERSION = "0.0.0";
 
+    /** Backup suffix timestamp, e.g. {@code 2026-07-29_14-05} - appended as {@code <name>.yml.backup_<timestamp>}. */
+    private static final DateTimeFormatter BACKUP_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
+
     private final JavaPlugin plugin;
     private final Yaml composer;
     private final Yaml serializer;
@@ -105,8 +110,8 @@ public final class ConfigMigrator {
         migrateOne(INTEGRATIONS_RESOURCE, onDiskVersion, bundledVersion, true);
 
         plugin.getLogger().warning("Migrated PlayerGrowth's config files from version " + onDiskVersion
-                + " to " + bundledVersion + ". Every file was backed up (.bak.<timestamp>) first, with custom"
-                + " values (and comments) carried over automatically.");
+                + " to " + bundledVersion + ". Every file was backed up (<name>.yml.backup_<date_hh_mm>) first,"
+                + " with custom values (and comments) carried over automatically.");
     }
 
     private void migrateOne(String resourceName, String fromVersion, String toVersion, boolean mergeMissingKeys) {
@@ -156,7 +161,7 @@ public final class ConfigMigrator {
     }
 
     private void backup(File target) {
-        File backup = new File(target.getParentFile(), target.getName() + ".bak." + System.currentTimeMillis());
+        File backup = new File(target.getParentFile(), target.getName() + ".backup_" + LocalDateTime.now().format(BACKUP_TIMESTAMP));
         try {
             Files.copy(target.toPath(), backup.toPath());
         } catch (IOException e) {
