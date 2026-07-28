@@ -5,6 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
+import org.misqzy.playergrowth.common.domain.OfflineProfile;
 import org.misqzy.playergrowth.common.lang.TimeFormatter;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
@@ -57,10 +58,15 @@ public final class PlaceholderAPIHook extends PlaceholderExpansion {
 
     @Override
     public String onRequest(@NotNull OfflinePlayer offlinePlayer, @NotNull String params) {
-        if (!(offlinePlayer instanceof Player player) || !player.isOnline()) return "";
-
         GrowthEngine engine = core.growthEngine();
-        BukkitPlayerAdapter target = new BukkitPlayerAdapter(player);
+
+        if (offlinePlayer instanceof Player player && player.isOnline()) {
+            return resolveOnline(engine, new BukkitPlayerAdapter(player), params);
+        }
+        return resolveOffline(engine, offlinePlayer, params);
+    }
+
+    private String resolveOnline(GrowthEngine engine, BukkitPlayerAdapter target, String params) {
         double current = engine.effectiveScale(target);
 
         return switch (params.toLowerCase()) {
@@ -78,6 +84,37 @@ public final class PlaceholderAPIHook extends PlaceholderExpansion {
             case "growth_max_reached" -> String.valueOf(engine.isAtMaxGrowth(target));
             case "growth_active" -> String.valueOf(!engine.isAtMaxGrowth(target) && !engine.hasCustomScale(target));
             case "has_custom_scale" -> String.valueOf(engine.hasCustomScale(target));
+            default -> null;
+        };
+    }
+
+    /**
+     * Same placeholders, computed from a one-shot {@link OfflineProfile}
+     * read straight out of storage instead of the online-only
+     * {@code ProfileCache}/live entity attribute - see
+     * {@link GrowthEngine#loadOffline} for the (deliberately blocking)
+     * tradeoff. Lets leaderboard/hologram plugins showing offline players
+     * get real data instead of PAPI's usual empty-string default.
+     */
+    private String resolveOffline(GrowthEngine engine, OfflinePlayer offlinePlayer, String params) {
+        OfflineProfile profile = engine.loadOffline(offlinePlayer.getUniqueId());
+        double current = engine.effectiveScale(profile);
+
+        return switch (params.toLowerCase()) {
+            case "height" -> ScaleMath.formatValue(current);
+            case "height_full" -> ScaleMath.format(current, core.messages().heightUnit());
+            case "height_min" -> ScaleMath.formatValue(engine.minScale());
+            case "height_max" -> ScaleMath.formatValue(engine.maxScaleFor(profile.gender()));
+            case "scale" -> ScaleMath.formatRaw(current);
+            case "scale_min" -> ScaleMath.formatRaw(engine.minScale());
+            case "scale_max" -> ScaleMath.formatRaw(engine.maxScaleFor(profile.gender()));
+            case "gender" -> core.genderDisplayName(profile.gender());
+            case "growth_remaining_seconds" -> String.valueOf(engine.secondsUntilFullGrowth(profile));
+            case "growth_remaining_formatted" -> TimeFormatter.format(engine.secondsUntilFullGrowth(profile), core.messages());
+            case "growth_percentage" -> ScaleMath.formatPercentage(engine.growthProgress(profile));
+            case "growth_max_reached" -> String.valueOf(engine.isAtMaxGrowth(profile));
+            case "growth_active" -> String.valueOf(!engine.isAtMaxGrowth(profile) && !profile.hasCustomScale());
+            case "has_custom_scale" -> String.valueOf(profile.hasCustomScale());
             default -> null;
         };
     }

@@ -5,6 +5,8 @@ import com.google.inject.Singleton;
 import org.misqzy.playergrowth.common.config.CoreConfig;
 import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.domain.GenderRegistry;
+import org.misqzy.playergrowth.common.domain.OfflineProfile;
+import org.misqzy.playergrowth.common.domain.PlayTime;
 import org.misqzy.playergrowth.common.domain.PlayerProfile;
 import org.misqzy.playergrowth.common.domain.ProfileCache;
 import org.misqzy.playergrowth.common.network.NetworkMessenger;
@@ -182,7 +184,10 @@ public final class GrowthEngine {
 
     public double maxScaleFor(PlatformPlayer player) {
         PlayerProfile profile = profiles.get(player.uuid());
-        Gender gender = profile != null ? profile.gender() : genderRegistry.getDefault();
+        return maxScaleFor(profile != null ? profile.gender() : genderRegistry.getDefault());
+    }
+
+    public double maxScaleFor(Gender gender) {
         return genderRegistry.getMaxScaleFor(gender);
     }
 
@@ -383,6 +388,73 @@ public final class GrowthEngine {
                 if (onSuccess != null) onSuccess.run();
             });
         });
+    }
+
+    // -----------------------------------------------------------------------
+    // Offline lookups
+    // -----------------------------------------------------------------------
+
+    /**
+     * Builds a one-shot {@link OfflineProfile} snapshot straight from
+     * storage, for callers that need a player's growth state without them
+     * being online (e.g. PlaceholderAPI backing an offline leaderboard or
+     * hologram) - {@link #profiles} only ever holds online players.
+     *
+     * <p><b>Blocking</b> - this does real storage I/O synchronously. That's
+     * a deliberate exception to every other {@code Storage} call in this
+     * class going through {@link org.misqzy.playergrowth.common.platform.Scheduler#runAsync}:
+     * PlaceholderAPI's {@code onRequest} has no async contract to hook into,
+     * it must return a {@code String} immediately, so there's no offloading
+     * this without caching. Fine for occasional lookups; not meant for a
+     * hot path iterating many offline players at once.</p>
+     */
+    public OfflineProfile loadOffline(UUID uuid) {
+        Gender gender = genderRegistry.resolve(storage.getGenderKey(uuid));
+        Double customScale = storage.getCustomScale(uuid);
+
+        long targetGrowthSeconds = config.growTimeSeconds();
+        if (config.isRangeMode()) {
+            Long stored = storage.getGrowthTimeSeconds(uuid);
+            if (stored != null) targetGrowthSeconds = stored;
+        }
+
+        long playedSeconds = 0L;
+        if (config.networkSyncEnabled()) {
+            PlayTime pt = storage.getPlayTime(uuid, serverKey());
+            // Offline, so no live (now - last) addition - total is already
+            // the full checkpointed figure as of their last quit.
+            if (pt != null) playedSeconds = pt.total();
+        }
+
+        return new OfflineProfile(gender, customScale, targetGrowthSeconds, playedSeconds);
+    }
+
+    /** The scale {@code profile} would be at if applied right now - mirrors {@link #applyScale}'s math exactly, since an offline player's played seconds are frozen (no live tick to drift from this snapshot). */
+    public double effectiveScale(OfflineProfile profile) {
+        double max = maxScaleFor(profile.gender());
+        if (profile.hasCustomScale()) return Math.min(profile.customScale(), max);
+        if (profile.targetGrowthSeconds() <= 0) return max;
+        return ScaleMath.scaleAtProgress(growthProgress(profile), minScale(), max);
+    }
+
+    /** See {@link #growthProgress(PlatformPlayer)} - same math, offline snapshot. */
+    public double growthProgress(OfflineProfile profile) {
+        if (profile.hasCustomScale() || profile.targetGrowthSeconds() <= 0) return 1.0;
+        return ScaleMath.progress(profile.playedSeconds(), profile.targetGrowthSeconds());
+    }
+
+    /** See {@link #secondsUntilFullGrowth(PlatformPlayer)} - same math, offline snapshot. */
+    public long secondsUntilFullGrowth(OfflineProfile profile) {
+        return ScaleMath.secondsRemaining(profile.playedSeconds(), profile.targetGrowthSeconds());
+    }
+
+    /** See {@link #isAtMaxGrowth(PlatformPlayer)} - same math, offline snapshot. */
+    public boolean isAtMaxGrowth(OfflineProfile profile) {
+        if (profile.hasCustomScale()) return false;
+        double current = effectiveScale(profile);
+        double max = maxScaleFor(profile.gender());
+        if (profile.targetGrowthSeconds() <= 0) return current >= max;
+        return current >= max && growthProgress(profile) >= 1.0;
     }
 
     // -----------------------------------------------------------------------
