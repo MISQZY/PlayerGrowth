@@ -1,7 +1,12 @@
 package org.misqzy.playergrowth.common.config.migration;
 
+import org.yaml.snakeyaml.nodes.MappingNode;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.SequenceNode;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Registry and runner for {@link ConfigMigrationStep}s.
@@ -14,10 +19,13 @@ import java.util.Map;
  * runs one hand-written transform per version against their config's
  * in-memory tree, then re-serialises the whole thing - so unrelated user
  * values survive a version bump) is what this mirrors, scaled down: this
- * project's config is a handful of scalar values behind a plain
- * {@code Map<String, Object>}, not a deep Jackson record tree, so it
- * doesn't need FlectonePulse's per-field wither-record machinery to get
- * the same "don't lose what you didn't change" property.</p>
+ * project's config is a handful of scalar values behind a SnakeYAML
+ * {@link MappingNode} tree (via {@link YamlNodeOps}), not a deep Jackson
+ * record tree, so it doesn't need FlectonePulse's per-field wither-record
+ * machinery to get the same "don't lose what you didn't change" property -
+ * and operating on the composed {@link Node} tree rather than a plain
+ * {@code Map<String,Object>} also keeps whatever comments the file already
+ * had, see {@link YamlNodeOps}.</p>
  *
  * <p>Two mechanisms, run in this order, per resource file:</p>
  * <ol>
@@ -28,10 +36,10 @@ import java.util.Map;
  *   absent from the disk file afterwards - covers purely additive new
  *   keys (the common case) without needing a step written for every one.
  *   Only appropriate for resource files with a fixed, closed key set
- *   (config.yml, the message files); deliberately <b>not</b> run for
- *   {@code gender.yml}'s {@code types} section, which is an open,
- *   user-owned map where a "missing" key usually means the admin removed
- *   it on purpose, not that the file is stale.</li>
+ *   (config.yml, integrations.yml, the message files); deliberately
+ *   <b>not</b> run for {@code gender.yml}'s {@code types} section, which is
+ *   an open, user-owned map where a "missing" key usually means the admin
+ *   removed it on purpose, not that the file is stale.</li>
  * </ol>
  */
 public final class ConfigMigrations {
@@ -54,19 +62,20 @@ public final class ConfigMigrations {
                 // next to the old, now-unread nested one.
                 @Override public String targetVersion() { return "0.1.1"; }
                 @Override public String resourceName() { return "config.yml"; }
-                @Override public void apply(Map<String, Object> root) {
-                    root.remove("config-version");
-                    root.remove("plugin-version");
+                @Override public void apply(MappingNode root) {
+                    YamlNodeOps.remove(root, "config-version");
+                    YamlNodeOps.remove(root, "plugin-version");
 
-                    Object networkSection = root.get("network");
-                    if (networkSection instanceof Map<?, ?> network) {
-                        Object legacyServer = network.get("server");
-                        boolean topLevelBlank = !(root.get("server") instanceof String s) || s.isBlank();
-                        if (legacyServer instanceof String legacy && !legacy.isBlank() && topLevelBlank) {
-                            root.put("server", legacy);
-                        }
-                        network.remove("server");
+                    MappingNode network = YamlNodeOps.getMapping(root, "network");
+                    if (network == null) return;
+
+                    String legacyServer = YamlNodeOps.getScalarString(network, "server");
+                    String topLevelServer = YamlNodeOps.getScalarString(root, "server");
+                    boolean topLevelBlank = topLevelServer == null || topLevelServer.isBlank();
+                    if (legacyServer != null && !legacyServer.isBlank() && topLevelBlank) {
+                        YamlNodeOps.putScalarString(root, "server", legacyServer);
                     }
+                    YamlNodeOps.remove(network, "server");
                 }
             },
             // network.blocklist (a list of excluded server ids, checked
@@ -85,23 +94,25 @@ public final class ConfigMigrations {
             new ConfigMigrationStep() {
                 @Override public String targetVersion() { return "0.2.1"; }
                 @Override public String resourceName() { return "config.yml"; }
-                @Override @SuppressWarnings("unchecked")
-                public void apply(Map<String, Object> root) {
-                    Object networkSection = root.get("network");
-                    if (!(networkSection instanceof Map<?, ?> networkRaw)) return;
-                    Map<String, Object> network = (Map<String, Object>) networkRaw;
+                @Override public void apply(MappingNode root) {
+                    MappingNode network = YamlNodeOps.getMapping(root, "network");
+                    if (network == null) return;
 
-                    Object blocklist = network.remove("blocklist");
+                    SequenceNode blocklistNode = YamlNodeOps.getSequence(network, "blocklist");
+                    List<String> blocklist = YamlNodeOps.scalarStrings(blocklistNode);
+                    YamlNodeOps.remove(network, "blocklist");
+
                     boolean includeServer = true;
-                    if (blocklist instanceof List<?> entries) {
-                        Object ownServer = root.get("server");
-                        if (ownServer instanceof String ownId && !ownId.isBlank()) {
-                            includeServer = entries.stream().noneMatch(entry -> ownId.equals(String.valueOf(entry).trim()));
+                    if (blocklistNode != null) {
+                        String ownId = YamlNodeOps.getScalarString(root, "server");
+                        if (ownId != null && !ownId.isBlank()) {
+                            includeServer = blocklist.stream()
+                                    .noneMatch(entry -> ownId.equals(entry == null ? null : entry.trim()));
                         }
                     }
 
-                    network.putIfAbsent("per-server", false);
-                    network.putIfAbsent("include-server", includeServer);
+                    YamlNodeOps.putScalarBooleanIfAbsent(network, "per-server", false);
+                    YamlNodeOps.putScalarBooleanIfAbsent(network, "include-server", includeServer);
                 }
             }
     );
@@ -110,13 +121,13 @@ public final class ConfigMigrations {
 
     /**
      * @param resourceName     e.g. {@code "config.yml"} - only steps registered for this file run
-     * @param disk             the on-disk file's parsed tree, mutated in place
+     * @param disk             the on-disk file's composed tree, mutated in place
      * @param bundled          the jar's bundled default for the same file, used as the merge source
      * @param fromVersion      the disk file's current {@code version}
      * @param toVersion        the bundled default's {@code version}
      * @param mergeMissingKeys whether to deep-merge bundled keys absent from {@code disk} afterwards
      */
-    public static void apply(String resourceName, Map<String, Object> disk, Map<String, Object> bundled,
+    public static void apply(String resourceName, MappingNode disk, MappingNode bundled,
                               String fromVersion, String toVersion, boolean mergeMissingKeys) {
         for (ConfigMigrationStep step : STEPS) {
             if (!step.resourceName().equals(resourceName)) continue;
@@ -130,16 +141,33 @@ public final class ConfigMigrations {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static void mergeMissing(Map<String, Object> target, Map<String, Object> source) {
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            String key = entry.getKey();
-            Object sourceValue = entry.getValue();
-            if (!target.containsKey(key)) {
-                target.put(key, sourceValue);
-            } else if (sourceValue instanceof Map<?, ?> && target.get(key) instanceof Map<?, ?>) {
-                mergeMissing((Map<String, Object>) target.get(key), (Map<String, Object>) sourceValue);
+    /**
+     * Appends every {@code source} tuple missing from {@code target} (carrying
+     * over the bundled file's own comments on that key) and recurses into
+     * nested mappings both sides already share - mirrors the old
+     * {@code Map.put}-based merge's semantics (new keys are appended, same as
+     * a {@code LinkedHashMap} would), just against {@link Node}s instead.
+     */
+    private static void mergeMissing(MappingNode target, MappingNode source) {
+        List<NodeTuple> additions = new ArrayList<>();
+        for (NodeTuple sourceTuple : source.getValue()) {
+            String key = sourceTuple.getKeyNode() instanceof org.yaml.snakeyaml.nodes.ScalarNode scalar
+                    ? scalar.getValue() : null;
+            if (key == null) continue;
+
+            NodeTuple existing = YamlNodeOps.find(target, key).orElse(null);
+            if (existing == null) {
+                additions.add(sourceTuple);
+            } else if (existing.getValueNode() instanceof MappingNode targetChild
+                    && sourceTuple.getValueNode() instanceof MappingNode sourceChild) {
+                mergeMissing(targetChild, sourceChild);
             }
+        }
+
+        if (!additions.isEmpty()) {
+            List<NodeTuple> merged = new ArrayList<>(target.getValue());
+            merged.addAll(additions);
+            target.setValue(merged);
         }
     }
 }
