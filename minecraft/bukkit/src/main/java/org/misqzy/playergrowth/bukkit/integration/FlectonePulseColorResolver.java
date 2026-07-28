@@ -84,6 +84,6 @@ public final class FlectonePulseColorResolver {
 
         Map<Integer, String> colors = fcolor.defaultColors();
         logger.info("[FlectonePulse] fcolor integration active - " + (colors != null ? colors.size() : 0)
-                + " default color(s) configured: " + colors);
+                + " default color(s) configured");
     }
 }
