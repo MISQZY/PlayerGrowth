@@ -1,7 +1,7 @@
 name: PlayerGrowth
 version: '${pluginVersion}'
 main: org.misqzy.playergrowth.bukkit.PlayerGrowthPlugin
-api-version: '26.2'
+api-version: '1.20.5'
 authors: [MISQZY]
 description: Gradual player height/scale growth with per-gender caps and optional cross-server sync.
 softdepend: [PlaceholderAPI, FlectonePulse]
