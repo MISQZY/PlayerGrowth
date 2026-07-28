@@ -104,6 +104,35 @@ public final class Messages {
         return raw("height.unit");
     }
 
+    /**
+     * The closing-tag-stripped raw MiniMessage string for {@code key} -
+     * exactly what {@link #get(String, Map)} would hand to its own
+     * {@code MiniMessage.deserialize}, exposed so a platform module can
+     * instead hand it to FlectonePulse's own {@code MessagePipeline.build}
+     * when routing a message through FlectonePulse (see that module's
+     * {@code FlectonePulseMessageDispatcher}). {@code <fcolor:N>} is
+     * deliberately left unresolved here - FlectonePulse resolves that tag
+     * itself as part of its own pipeline, the whole reason for going through
+     * it in the first place, so this class must not race it with its own
+     * resolution first.
+     */
+    public String rawForDispatch(String key) {
+        return stripClosingTags(raw(key));
+    }
+
+    /**
+     * {@code <primary>}/{@code <secondary>} plus this call's placeholders -
+     * everything {@link #themeResolvers()} resolves *except* {@code <fcolor:N>}.
+     * Paired with {@link #rawForDispatch(String)} for the FlectonePulse
+     * dispatch path: FlectonePulse's own pipeline adds its own
+     * {@code <fcolor:N>} resolver on top of whatever it's handed, so this
+     * class only needs to supply the theme/placeholder tags it alone knows
+     * about, not fcolor.
+     */
+    public TagResolver externalDispatchResolvers(Map<String, Object> placeholders) {
+        return TagResolver.resolver(primarySecondaryResolvers(), buildResolver(placeholders));
+    }
+
     private static String stripClosingTags(String message) {
         if (!message.contains("</primary>") && !message.contains("</secondary>") && !message.contains("</fcolor")) {
             return message;
@@ -113,9 +142,15 @@ public final class Messages {
 
     private TagResolver themeResolvers() {
         return TagResolver.resolver(
-                TagResolver.resolver("primary", (queue, ctx) -> Tag.preProcessParsed(asTag(primaryColor))),
-                TagResolver.resolver("secondary", (queue, ctx) -> Tag.preProcessParsed(asTag(secondaryColor))),
+                primarySecondaryResolvers(),
                 TagResolver.resolver("fcolor", (queue, ctx) -> Tag.preProcessParsed(resolveFColor(queue)))
+        );
+    }
+
+    private TagResolver primarySecondaryResolvers() {
+        return TagResolver.resolver(
+                TagResolver.resolver("primary", (queue, ctx) -> Tag.preProcessParsed(asTag(primaryColor))),
+                TagResolver.resolver("secondary", (queue, ctx) -> Tag.preProcessParsed(asTag(secondaryColor)))
         );
     }
 

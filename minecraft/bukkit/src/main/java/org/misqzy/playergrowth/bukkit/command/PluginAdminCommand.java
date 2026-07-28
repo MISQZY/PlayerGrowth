@@ -4,8 +4,11 @@ import org.bukkit.command.CommandSender;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.bukkit.PlayerGrowthPlugin;
+import org.misqzy.playergrowth.common.lang.TimeFormatter;
+
+import java.util.Map;
 
 /** Administrative commands - currently just {@code /playergrowth reload}. */
 public final class PluginAdminCommand {
@@ -20,7 +23,7 @@ public final class PluginAdminCommand {
     @CommandDescription("Reload the PlayerGrowth configuration.")
     @Permission("playergrowth.admin.reload")
     public void reload(CommandSender sender) {
-        plugin.reload();
-        LegacyText.send(sender, plugin.core().messages().get("admin.reloaded"));
+        plugin.reload(time -> PlayerGrowthMessages.send(plugin.core(), sender, "admin.reloaded",
+                Map.of("time", TimeFormatter.formatMillis(time))));
     }
 }

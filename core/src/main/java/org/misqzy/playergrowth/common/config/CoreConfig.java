@@ -10,6 +10,7 @@ import org.misqzy.playergrowth.common.storage.StorageType;
  */
 public final class CoreConfig {
 
+    private final String version;
     private final double minScale;
     private final double maxScale;
     private final String locale;
@@ -38,6 +39,7 @@ public final class CoreConfig {
     private final boolean networkSyncEnabled;
 
     public CoreConfig(ConfigView cfg) {
+        this.version = cfg.getString("version", "0.0.0");
         this.minScale = cfg.getDouble("scale.min", 0.3);
         this.maxScale = cfg.getDouble("scale.max", 1.0);
         this.locale = cfg.getString("locale", "en");
@@ -72,6 +74,9 @@ public final class CoreConfig {
 
         this.networkSyncEnabled = cfg.getBoolean("network.sync-enabled", false);
     }
+
+    /** The plugin build that generated this config.yml - kept in sync on every startup by ConfigMigrator, so this is always the currently-running build's version, not a stale snapshot. */
+    public String version() { return version; }
 
     public double minScale() { return minScale; }
     public double maxScale() { return maxScale; }

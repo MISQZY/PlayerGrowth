@@ -6,6 +6,7 @@ import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
+import org.misqzy.playergrowth.paper.PlayerGrowthMessages;
 
 import java.util.List;
 import java.util.Map;
@@ -54,12 +55,12 @@ public final class HelpCommand {
     @Permission("playergrowth.help")
     public void help(CommandSourceStack source) {
         CommandSender sender = source.getSender();
-        sender.sendMessage(core.messages().get("help.header"));
+        PlayerGrowthMessages.send(core, sender, "help.header");
         for (Entry entry : ENTRIES) {
             if (entry.permission() != null && !sender.hasPermission(entry.permission())) continue;
-            sender.sendMessage(core.messages().get("help.entry", Map.of(
+            PlayerGrowthMessages.send(core, sender, "help.entry", Map.of(
                     "syntax", entry.syntax(),
-                    "description", core.messages().raw(entry.descriptionKey()))));
+                    "description", core.messages().raw(entry.descriptionKey())));
         }
     }
 }

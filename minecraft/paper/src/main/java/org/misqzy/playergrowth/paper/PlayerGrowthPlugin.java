@@ -10,6 +10,7 @@ import org.misqzy.playergrowth.common.network.NetworkMessenger;
 import org.misqzy.playergrowth.common.platform.PlatformPlayer;
 import org.misqzy.playergrowth.common.platform.PlayerLookup;
 import org.misqzy.playergrowth.common.platform.Scheduler;
+import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.paper.api.PlayerGrowthAPI;
 import org.misqzy.playergrowth.paper.api.PlayerGrowthAPIImpl;
 import org.misqzy.playergrowth.paper.command.CommandRegistry;
@@ -26,6 +27,7 @@ import org.misqzy.playergrowth.paper.network.PaperNetworkMessenger;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.LongConsumer;
 
 public final class PlayerGrowthPlugin extends JavaPlugin {
 
@@ -80,20 +82,40 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
      * recreates it from the jar instead of {@code loadMessages} throwing an
      * {@code IllegalStateException} on a now-missing file - idempotent, so
      * it never touches a resource that's still present.</p>
+     *
+     * <p>Runs off the main thread: installing/migrating resources, reading
+     * four YAML files and (when the configured storage backend changed)
+     * reconnecting via HikariCP and running schema migrations are all
+     * blocking I/O, no different from the storage calls {@link GrowthEngine}
+     * already funnels through {@link Scheduler#runAsync} - the admin command
+     * that triggers this shouldn't freeze the whole server while a database
+     * reconnect is in flight. Only the last step (restarting the ticker and
+     * refreshing already-online players) touches Bukkit's Player/scheduler
+     * API and hops back to the main thread for that. {@code onComplete} runs
+     * on the main thread once everything has settled, receiving the total
+     * wall-clock time (in milliseconds) the whole reload took.</p>
      */
-    public void reload() {
-        new ResourceInstaller(this).installDefaults();
-        new ConfigMigrator(this).migrateIfNeeded();
+    public void reload(LongConsumer onComplete) {
+        long startedAt = System.currentTimeMillis();
+        scheduler.runAsync(() -> {
+            new ResourceInstaller(this).installDefaults();
+            new ConfigMigrator(this).migrateIfNeeded();
 
-        ConfigView mainConfig = loadConfig("config.yml");
-        FlectonePulseColorResolver.logDiagnostics(this);
-        core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig), FlectonePulseColorResolver::resolveDefaultColors);
-        if (ticker != null) ticker.restart();
+            ConfigView mainConfig = loadConfig("config.yml");
+            FlectonePulseColorResolver.logDiagnostics(this);
+            core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig), FlectonePulseColorResolver::resolveDefaultColors);
 
-        List<PlatformPlayer> online = Bukkit.getOnlinePlayers().stream()
-                .<PlatformPlayer>map(PaperPlayerAdapter::new)
-                .toList();
-        core.growthEngine().refreshAfterReload(online);
+            scheduler.runSync(() -> {
+                if (ticker != null) ticker.restart();
+
+                List<PlatformPlayer> online = Bukkit.getOnlinePlayers().stream()
+                        .<PlatformPlayer>map(PaperPlayerAdapter::new)
+                        .toList();
+                core.growthEngine().refreshAfterReload(online);
+
+                if (onComplete != null) onComplete.accept(System.currentTimeMillis() - startedAt);
+            });
+        });
     }
 
     public PlayerGrowthCore core() {

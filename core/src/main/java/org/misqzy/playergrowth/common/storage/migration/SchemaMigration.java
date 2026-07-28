@@ -16,17 +16,22 @@ import java.util.List;
  * existing per-dialect split ({@link org.misqzy.playergrowth.common.storage.AbstractSqlStorage}
  * for MySQL/MariaDB, {@link org.misqzy.playergrowth.common.storage.H2Storage}
  * independently for H2 - see {@code docs/ARCHITECTURE.md} "Bugs fixed" #1
- * for why those two are never collapsed together). A plain {@code int}
- * version is used here instead of FlectonePulse's semantic-version string
- * comparison: this project's schema version is independent of the plugin's
- * own release version and only this project controls when it advances, so
- * a monotonic counter (matching how {@code config-version} already works)
- * is simpler and needs no version-comparison utility.</p>
+ * for why those two are never collapsed together).
+ *
+ * <p>{@code targetVersion()} is the plugin's own semver (the same
+ * {@code config.yml} {@code version} string {@link org.misqzy.playergrowth.common.config.migration.ConfigMigrationStep}
+ * targets), compared with
+ * {@link org.misqzy.playergrowth.common.config.migration.VersionComparator} -
+ * not an independent monotonic counter. The stored
+ * {@code playergrowth_schema_version} row is meant to read as "this
+ * database's shape matches what plugin version X built", so it stays
+ * legible next to {@code config.yml}'s own {@code version} instead of
+ * tracking a second, unrelated number.</p>
  */
 public interface SchemaMigration {
 
-    /** The schema version this step upgrades the database to. */
-    int targetVersion();
+    /** The plugin version (semver, e.g. {@code "0.1.3"}) this step upgrades the database to. */
+    String targetVersion();
 
     /** Dialect-specific statements to run when upgrading to {@link #targetVersion()}, in order. */
     List<String> statements(StorageType dialect);

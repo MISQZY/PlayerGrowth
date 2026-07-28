@@ -7,7 +7,7 @@ import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 import org.misqzy.playergrowth.bukkit.BukkitPlayerAdapter;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.domain.GenderRegistry;
@@ -39,7 +39,7 @@ public final class GenderCommand {
         if (sender instanceof Player player) {
             apply(player, player, type);
         } else {
-            LegacyText.send(sender, core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -54,11 +54,11 @@ public final class GenderCommand {
     private void apply(CommandSender sender, Player targetPlayer, String type) {
         GenderRegistry registry = core.genderRegistry();
         if (!registry.isEnabled()) {
-            LegacyText.send(sender, core.messages().get("gender.disabled"));
+            PlayerGrowthMessages.send(core, sender, "gender.disabled");
             return;
         }
         if (!registry.isGenderInput(type)) {
-            LegacyText.send(sender, core.messages().get("gender.unknown", Map.of("input", type)));
+            PlayerGrowthMessages.send(core, sender, "gender.unknown", Map.of("input", type));
             return;
         }
 
@@ -66,9 +66,9 @@ public final class GenderCommand {
         GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
         engine.setGender(target, gender,
-                () -> LegacyText.send(sender, core.messages().get("gender.set", Map.of(
+                () -> PlayerGrowthMessages.send(core, sender, "gender.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "gender", registry.resolveDisplayName(gender, core.messages()::raw)))),
-                () -> LegacyText.send(sender, core.messages().get("gender.set-failed")));
+                        "gender", registry.resolveDisplayName(gender, core.messages()::raw))),
+                () -> PlayerGrowthMessages.send(core, sender, "gender.set-failed"));
     }
 }

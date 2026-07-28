@@ -1,8 +1,15 @@
 package org.misqzy.playergrowth.common.lang;
 
+import java.util.Locale;
+
 public final class TimeFormatter {
 
     private TimeFormatter() {}
+
+    /** A short wall-clock duration as {@code x.nnnUOM}, e.g. {@code 0.042s} for 42ms - always seconds, so admin-facing timings (like a reload) read as one consistent decimal instead of jumping between "512ms" and "1.3s". */
+    public static String formatMillis(long millis) {
+        return String.format(Locale.US, "%.3fs", millis / 1000.0);
+    }
 
     public static String format(long totalSeconds, Messages messages) {
         if (totalSeconds <= 0) return "0 " + messages.raw("time.seconds");

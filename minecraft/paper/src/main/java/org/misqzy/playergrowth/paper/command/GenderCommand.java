@@ -12,6 +12,7 @@ import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.domain.GenderRegistry;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.paper.PaperPlayerAdapter;
+import org.misqzy.playergrowth.paper.PlayerGrowthMessages;
 
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public final class GenderCommand {
         if (sender instanceof Player player) {
             apply(player, player, type);
         } else {
-            sender.sendMessage(core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -55,11 +56,11 @@ public final class GenderCommand {
     private void apply(CommandSender sender, Player targetPlayer, String type) {
         GenderRegistry registry = core.genderRegistry();
         if (!registry.isEnabled()) {
-            sender.sendMessage(core.messages().get("gender.disabled"));
+            PlayerGrowthMessages.send(core, sender, "gender.disabled");
             return;
         }
         if (!registry.isGenderInput(type)) {
-            sender.sendMessage(core.messages().get("gender.unknown", Map.of("input", type)));
+            PlayerGrowthMessages.send(core, sender, "gender.unknown", Map.of("input", type));
             return;
         }
 
@@ -67,9 +68,9 @@ public final class GenderCommand {
         GrowthEngine engine = core.growthEngine();
         PaperPlayerAdapter target = new PaperPlayerAdapter(targetPlayer);
         engine.setGender(target, gender,
-                () -> sender.sendMessage(core.messages().get("gender.set", Map.of(
+                () -> PlayerGrowthMessages.send(core, sender, "gender.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "gender", registry.resolveDisplayName(gender, core.messages()::raw)))),
-                () -> sender.sendMessage(core.messages().get("gender.set-failed")));
+                        "gender", registry.resolveDisplayName(gender, core.messages()::raw))),
+                () -> PlayerGrowthMessages.send(core, sender, "gender.set-failed"));
     }
 }

@@ -37,6 +37,10 @@ import org.bukkit.Bukkit;
  * but threw vs. fcolor module disabled in FlectonePulse's own config), see
  * {@link FlectonePulseColorResolver#logDiagnostics}, run once per
  * {@code onEnable()}/{@code reload()} instead.</p>
+ *
+ * <p>{@link #tryGet} is the same lookup generalised to any of FlectonePulse's
+ * Guice-managed singletons - {@link FlectonePulseMessageDispatcher} uses it
+ * for {@code FPlayerService}/{@code MessagePipeline}/{@code MessageDispatcher}.</p>
  */
 final class FlectonePulseAccess {
 
@@ -46,13 +50,18 @@ final class FlectonePulseAccess {
 
     /** FlectonePulse's live {@link FileFacade}, or {@code null} if unavailable for any reason. */
     static FileFacade tryGetFileFacade() {
+        return tryGet(FileFacade.class);
+    }
+
+    /** Any of FlectonePulse's Guice-managed singletons, or {@code null} if unavailable for any reason (not installed, not ready, or an incompatible version). */
+    static <T> T tryGet(Class<T> type) {
         try {
             if (!Bukkit.getPluginManager().isPluginEnabled(PLUGIN_NAME)) return null;
 
             FlectonePulse instance = FlectonePulseAPI.getInstance();
             if (instance == null || !instance.isReady()) return null;
 
-            return instance.get(FileFacade.class);
+            return instance.get(type);
         } catch (RuntimeException | LinkageError e) {
             return null;
         }

@@ -11,6 +11,7 @@ import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
 import org.misqzy.playergrowth.paper.PaperPlayerAdapter;
+import org.misqzy.playergrowth.paper.PlayerGrowthMessages;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -68,7 +69,7 @@ public final class HeightCommand {
         if (sender instanceof Player player) {
             action.accept(player);
         } else {
-            sender.sendMessage(core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -87,19 +88,19 @@ public final class HeightCommand {
         PaperPlayerAdapter target = new PaperPlayerAdapter(targetPlayer);
         double scale = ScaleMath.fromMeters(meters);
         engine.setCustomScale(target, scale,
-                () -> sender.sendMessage(core.messages().get("height.set", Map.of(
+                () -> PlayerGrowthMessages.send(core, sender, "height.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "value", ScaleMath.formatValue(scale)))),
-                () -> sender.sendMessage(core.messages().get("height.invalid", Map.of(
+                        "value", ScaleMath.formatValue(scale))),
+                () -> PlayerGrowthMessages.send(core, sender, "height.invalid", Map.of(
                         "min", ScaleMath.formatValue(engine.minScale()),
-                        "max", ScaleMath.formatValue(engine.maxScaleFor(target))))));
+                        "max", ScaleMath.formatValue(engine.maxScaleFor(target)))));
     }
 
     private void remove(CommandSender sender, Player targetPlayer) {
         GrowthEngine engine = core.growthEngine();
         PaperPlayerAdapter target = new PaperPlayerAdapter(targetPlayer);
         engine.removeCustomScale(target,
-                () -> sender.sendMessage(core.messages().get("height.removed", Map.of("player", targetPlayer.getName()))),
-                () -> sender.sendMessage(core.messages().get("height.remove-failed")));
+                () -> PlayerGrowthMessages.send(core, sender, "height.removed", Map.of("player", targetPlayer.getName())),
+                () -> PlayerGrowthMessages.send(core, sender, "height.remove-failed"));
     }
 }

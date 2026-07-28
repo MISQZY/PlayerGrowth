@@ -72,7 +72,7 @@ public final class GrowthEngine {
         return Math.max(50L, (long) (config.growthUpdateIntervalSeconds() * 1000L));
     }
 
-    /** Hot-swaps config/storage/gender registry after a reload; call from the main thread. */
+    /** Hot-swaps config/storage/gender registry after a reload; safe to call from any thread (fields are volatile). */
     public void applyReload(CoreConfig newConfig, Storage newStorage, GenderRegistry newGenderRegistry) {
         this.config = newConfig;
         this.storage = newStorage;

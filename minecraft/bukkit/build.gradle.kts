@@ -20,6 +20,9 @@ dependencies {
     compileOnly("me.clip:placeholderapi:${project.findProperty("placeholderapiVersion")}")
     // FlectonePulse's own published API module - see integration/FlectonePulseAccess.
     compileOnly("net.flectone.pulse:core:${project.findProperty("flectonePulseVersion")}")
+    // Needed only for javac to resolve type annotations on FlectonePulse's
+    // classes - see the comment on commonsLang3Version in gradle.properties.
+    compileOnly("org.apache.commons:commons-lang3:${project.findProperty("commonsLang3Version")}")
     // Unlike paper-api, spigot-api's own pom does not pull in com.mojang:brigadier
     // transitively (verified: no such dependency in its published pom.xml) - but
     // cloud-bukkit transitively depends on cloud-brigadier, whose compiled classes

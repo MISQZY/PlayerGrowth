@@ -43,7 +43,7 @@ growth-info:
   remaining: '<secondary>Time remaining: <primary><time>'
 
 admin:
-  reloaded: '<primary><secondary>PlayerGrowth</secondary> configuration reloaded.</primary>'
+  reloaded: '<primary><secondary>PlayerGrowth</secondary> configuration successfully reloaded! (<secondary><time></secondary>).</primary>'
 
 help:
   header: '<primary>--- PlayerGrowth commands ---</primary>'

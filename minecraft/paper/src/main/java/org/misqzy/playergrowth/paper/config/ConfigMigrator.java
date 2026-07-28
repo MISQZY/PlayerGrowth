@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,17 +39,29 @@ import java.util.Map;
  * <p>Comments are still lost on any file this rewrites - that's an
  * unavoidable SnakeYAML limitation (see docs/ARCHITECTURE.md "Known,
  * accepted limitations"), unrelated to and not fixed by this class. What
- * this fixes is <em>data</em> loss: every value the admin customised in a
- * file survives a version bump now (unless an explicit migration step
- * intentionally changes it), where the old "back up and overwrite with the
- * bundled default" approach discarded a file's entire customisation on any
- * bump at all, however small.</p>
+ * this fixes is <em>data</em> loss: every value the admin customised in
+ * {@code config.yml}/{@code gender.yml} survives a version bump now (unless
+ * an explicit migration step intentionally changes it), where the old
+ * "back up and overwrite with the bundled default" approach discarded a
+ * file's entire customisation on any bump at all, however small.</p>
+ *
+ * <p>Localization files are the deliberate exception to that: they're
+ * still backed up first, but then replaced outright with the bundled
+ * translation rather than merged - see {@link #replaceWithBundled}. A
+ * merge only ever <em>adds</em> keys the disk copy is missing, so wording
+ * or color-tag changes to an <em>existing</em> message key in a new release
+ * would otherwise never reach an upgrading install; the admin's old
+ * translation would keep loading forever, indistinguishable from an
+ * intentional customisation.</p>
  */
 public final class ConfigMigrator {
 
-    /** Files with a fixed, closed key set - safe to auto-merge any bundled key the disk copy is missing. */
-    private static final List<String> MERGED_RESOURCES = List.of(
-            "config.yml", "localizations/messages_en.yml", "localizations/messages_ru.yml");
+    /** Has a fixed, closed key set and admin-customisable values - safe to auto-merge any bundled key the disk copy is missing. */
+    private static final String MAIN_CONFIG_RESOURCE = "config.yml";
+
+    /** Bundled translations this plugin fully owns - replaced wholesale rather than merged, see the class-level note above. */
+    private static final List<String> LOCALIZATION_RESOURCES = List.of(
+            "localizations/messages_en.yml", "localizations/messages_ru.yml");
 
     /** Has an open, user-owned {@code types} section - only explicit steps run against it, never a blind merge. */
     private static final String GENDER_RESOURCE = "gender.yml";
@@ -71,14 +84,16 @@ public final class ConfigMigrator {
         String onDiskVersion = readVersion(readDisk(configFile));
         if (VersionComparator.compare(onDiskVersion, bundledVersion) >= 0) return;
 
-        for (String resource : MERGED_RESOURCES) {
-            migrateOne(resource, onDiskVersion, bundledVersion, true);
+        migrateOne(MAIN_CONFIG_RESOURCE, onDiskVersion, bundledVersion, true);
+        for (String resource : LOCALIZATION_RESOURCES) {
+            replaceWithBundled(resource);
         }
         migrateOne(GENDER_RESOURCE, onDiskVersion, bundledVersion, false);
 
         plugin.getLogger().warning("Migrated PlayerGrowth's config files from version " + onDiskVersion
-                + " to " + bundledVersion + ". Old files were backed up (.bak.<timestamp>) and custom values"
-                + " were carried over automatically, but comments were not.");
+                + " to " + bundledVersion + ". config.yml/gender.yml were backed up (.bak.<timestamp>) with custom"
+                + " values carried over automatically; localization files were backed up the same way but replaced"
+                + " outright with the new bundled translations.");
     }
 
     private void migrateOne(String resourceName, String fromVersion, String toVersion, boolean mergeMissingKeys) {
@@ -91,10 +106,31 @@ public final class ConfigMigrator {
         Map<String, Object> disk = readDisk(target);
         backup(target);
         ConfigMigrations.apply(resourceName, disk, bundled, fromVersion, toVersion, mergeMissingKeys);
-        if ("config.yml".equals(resourceName)) {
+        if (MAIN_CONFIG_RESOURCE.equals(resourceName)) {
             disk.put("version", toVersion);
         }
         write(target, disk);
+    }
+
+    /**
+     * Backs up {@code resourceName} then overwrites it with the bundled jar
+     * copy verbatim (a raw byte copy, not a parse/re-dump - so it also keeps
+     * whatever comments the bundled file has, unlike {@link #write}). Used
+     * for localization files instead of {@link #migrateOne}'s merge, so a
+     * new release's translation actually replaces the old one on disk
+     * rather than only ever gaining newly-added keys.
+     */
+    private void replaceWithBundled(String resourceName) {
+        File target = new File(plugin.getDataFolder(), resourceName);
+        if (!target.exists()) return;
+
+        try (InputStream in = plugin.getResource(resourceName)) {
+            if (in == null) return; // not actually bundled under this name - nothing to replace with
+            backup(target);
+            Files.copy(in, target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to replace " + resourceName + " with the bundled version: " + e.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -7,7 +7,7 @@ import org.incendo.cloud.bukkit.BukkitCommandManager;
 import org.incendo.cloud.exception.InvalidSyntaxException;
 import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.suggestion.SuggestionProvider;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.bukkit.PlayerGrowthPlugin;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.domain.Gender;
@@ -53,8 +53,8 @@ public final class CommandRegistry {
                 SuggestionProvider.blockingStrings((context, input) -> genderSuggestions(core)));
 
         manager.exceptionController().registerHandler(InvalidSyntaxException.class, ctx ->
-                LegacyText.send(ctx.context().sender(), core.messages().get("command.invalid-syntax",
-                        Map.of("syntax", "/" + ctx.exception().correctSyntax()))));
+                PlayerGrowthMessages.send(core, ctx.context().sender(), "command.invalid-syntax",
+                        Map.of("syntax", "/" + ctx.exception().correctSyntax())));
 
         AnnotationParser<CommandSender> parser = new AnnotationParser<>(manager, CommandSender.class);
         parser.parse(new HeightCommand(core));

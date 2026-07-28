@@ -7,7 +7,7 @@ import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 import org.misqzy.playergrowth.bukkit.BukkitPlayerAdapter;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
@@ -67,7 +67,7 @@ public final class HeightCommand {
         if (sender instanceof Player player) {
             action.accept(player);
         } else {
-            LegacyText.send(sender, core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -86,19 +86,19 @@ public final class HeightCommand {
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
         double scale = ScaleMath.fromMeters(meters);
         engine.setCustomScale(target, scale,
-                () -> LegacyText.send(sender, core.messages().get("height.set", Map.of(
+                () -> PlayerGrowthMessages.send(core, sender, "height.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "value", ScaleMath.formatValue(scale)))),
-                () -> LegacyText.send(sender, core.messages().get("height.invalid", Map.of(
+                        "value", ScaleMath.formatValue(scale))),
+                () -> PlayerGrowthMessages.send(core, sender, "height.invalid", Map.of(
                         "min", ScaleMath.formatValue(engine.minScale()),
-                        "max", ScaleMath.formatValue(engine.maxScaleFor(target))))));
+                        "max", ScaleMath.formatValue(engine.maxScaleFor(target)))));
     }
 
     private void remove(CommandSender sender, Player targetPlayer) {
         GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
         engine.removeCustomScale(target,
-                () -> LegacyText.send(sender, core.messages().get("height.removed", Map.of("player", targetPlayer.getName()))),
-                () -> LegacyText.send(sender, core.messages().get("height.remove-failed")));
+                () -> PlayerGrowthMessages.send(core, sender, "height.removed", Map.of("player", targetPlayer.getName())),
+                () -> PlayerGrowthMessages.send(core, sender, "height.remove-failed"));
     }
 }

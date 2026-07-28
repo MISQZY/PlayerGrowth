@@ -12,13 +12,15 @@ public final class StorageFactory {
     public static Storage create(Logger logger, File dataFolder, CoreConfig config) {
         return switch (config.storageType()) {
             case YAML -> new YamlStorage(logger, dataFolder);
-            case H2 -> new H2Storage(logger, dataFolder);
+            case H2 -> new H2Storage(logger, dataFolder, config.version());
             case MYSQL -> new MySQLStorage(logger,
                     config.dbHost(), config.dbPort(), config.dbName(), config.dbUsername(), config.dbPassword(),
-                    config.maxPoolSize(), config.minIdle(), config.connectionTimeoutMs(), config.idleTimeoutMs(), config.maxLifetimeMs());
+                    config.maxPoolSize(), config.minIdle(), config.connectionTimeoutMs(), config.idleTimeoutMs(), config.maxLifetimeMs(),
+                    config.version());
             case MARIADB -> new MariaDbStorage(logger,
                     config.dbHost(), config.dbPort(), config.dbName(), config.dbUsername(), config.dbPassword(),
-                    config.maxPoolSize(), config.minIdle(), config.connectionTimeoutMs(), config.idleTimeoutMs(), config.maxLifetimeMs());
+                    config.maxPoolSize(), config.minIdle(), config.connectionTimeoutMs(), config.idleTimeoutMs(), config.maxLifetimeMs(),
+                    config.version());
         };
     }
 

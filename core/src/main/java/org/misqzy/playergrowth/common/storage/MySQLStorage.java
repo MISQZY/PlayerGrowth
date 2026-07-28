@@ -7,9 +7,10 @@ public final class MySQLStorage extends AbstractSqlStorage {
     public MySQLStorage(Logger logger, String host, int port, String database,
                          String username, String password,
                          int maxPoolSize, int minIdle,
-                         long connectionTimeoutMs, long idleTimeoutMs, long maxLifetimeMs) {
+                         long connectionTimeoutMs, long idleTimeoutMs, long maxLifetimeMs,
+                         String pluginVersion) {
         super(logger, host, port, database, username, password,
-                maxPoolSize, minIdle, connectionTimeoutMs, idleTimeoutMs, maxLifetimeMs);
+                maxPoolSize, minIdle, connectionTimeoutMs, idleTimeoutMs, maxLifetimeMs, pluginVersion);
     }
 
     @Override

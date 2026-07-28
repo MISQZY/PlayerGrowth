@@ -4,7 +4,7 @@ import org.bukkit.command.CommandSender;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 
 import java.util.List;
@@ -53,12 +53,12 @@ public final class HelpCommand {
     @CommandDescription("Lists every PlayerGrowth command you can use.")
     @Permission("playergrowth.help")
     public void help(CommandSender sender) {
-        LegacyText.send(sender, core.messages().get("help.header"));
+        PlayerGrowthMessages.send(core, sender, "help.header");
         for (Entry entry : ENTRIES) {
             if (entry.permission() != null && !sender.hasPermission(entry.permission())) continue;
-            LegacyText.send(sender, core.messages().get("help.entry", Map.of(
+            PlayerGrowthMessages.send(core, sender, "help.entry", Map.of(
                     "syntax", entry.syntax(),
-                    "description", core.messages().raw(entry.descriptionKey()))));
+                    "description", core.messages().raw(entry.descriptionKey())));
         }
     }
 }

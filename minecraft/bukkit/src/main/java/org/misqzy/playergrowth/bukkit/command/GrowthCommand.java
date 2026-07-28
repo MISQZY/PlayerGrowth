@@ -7,7 +7,7 @@ import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 import org.misqzy.playergrowth.bukkit.BukkitPlayerAdapter;
-import org.misqzy.playergrowth.bukkit.LegacyText;
+import org.misqzy.playergrowth.bukkit.PlayerGrowthMessages;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.lang.TimeFormatter;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
@@ -38,7 +38,7 @@ public final class GrowthCommand {
         if (sender instanceof Player player) {
             showSummary(player, player);
         } else {
-            LegacyText.send(sender, core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -56,7 +56,7 @@ public final class GrowthCommand {
         if (sender instanceof Player player) {
             showHeight(player, player);
         } else {
-            LegacyText.send(sender, core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -74,7 +74,7 @@ public final class GrowthCommand {
         if (sender instanceof Player player) {
             showGender(player, player);
         } else {
-            LegacyText.send(sender, core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -102,14 +102,14 @@ public final class GrowthCommand {
     }
 
     private void sendHeader(CommandSender sender, Player targetPlayer) {
-        LegacyText.send(sender, core.messages().get("growth-info.header", Map.of("player", targetPlayer.getName())));
+        PlayerGrowthMessages.send(core, sender, "growth-info.header", Map.of("player", targetPlayer.getName()));
     }
 
     private void sendGender(CommandSender sender, Player targetPlayer) {
         GrowthEngine engine = core.growthEngine();
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
-        LegacyText.send(sender, core.messages().get("growth-info.gender", Map.of(
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw))));
+        PlayerGrowthMessages.send(core, sender, "growth-info.gender", Map.of(
+                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
     }
 
     /** Height value plus growth progress - progress is a height-growth metric, so it belongs with height, not the generic summary alone. */
@@ -120,17 +120,17 @@ public final class GrowthCommand {
         Double scale = target.currentScale();
         double current = scale != null ? scale : engine.minScale();
 
-        LegacyText.send(sender, core.messages().get("growth-info.height", Map.of(
+        PlayerGrowthMessages.send(core, sender, "growth-info.height", Map.of(
                 "value", ScaleMath.formatValue(current),
                 "unit", core.messages().heightUnit(),
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw))));
+                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
 
         if (engine.isAtMaxGrowth(target)) {
-            LegacyText.send(sender, core.messages().get("growth-info.max-reached"));
+            PlayerGrowthMessages.send(core, sender, "growth-info.max-reached");
         } else {
             long remaining = engine.secondsUntilFullGrowth(target);
-            LegacyText.send(sender, core.messages().get("growth-info.remaining", Map.of(
-                    "time", TimeFormatter.format(remaining, core.messages()))));
+            PlayerGrowthMessages.send(core, sender, "growth-info.remaining", Map.of(
+                    "time", TimeFormatter.format(remaining, core.messages())));
         }
     }
 }

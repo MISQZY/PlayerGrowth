@@ -29,10 +29,13 @@ public final class PlayerGrowthCore {
 
     private final Platform platform;
     private Injector injector;
-    private CoreConfig config;
-    private Storage storage;
-    private GenderRegistry genderRegistry;
-    private Messages messages;
+    // volatile: reload() now runs its blocking file/DB I/O off the main
+    // thread (see PlayerGrowthPlugin#reload) and swaps these in from there,
+    // while commands/PAPI/etc. keep reading them on the main thread.
+    private volatile CoreConfig config;
+    private volatile Storage storage;
+    private volatile GenderRegistry genderRegistry;
+    private volatile Messages messages;
 
     private PlayerGrowthCore(Platform platform) {
         this.platform = platform;

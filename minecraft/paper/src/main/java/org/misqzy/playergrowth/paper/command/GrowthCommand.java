@@ -12,6 +12,7 @@ import org.misqzy.playergrowth.common.lang.TimeFormatter;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
 import org.misqzy.playergrowth.paper.PaperPlayerAdapter;
+import org.misqzy.playergrowth.paper.PlayerGrowthMessages;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -79,7 +80,7 @@ public final class GrowthCommand {
         if (sender instanceof Player player) {
             action.accept(player);
         } else {
-            sender.sendMessage(core.messages().get("command.players-only"));
+            PlayerGrowthMessages.send(core, sender, "command.players-only");
         }
     }
 
@@ -100,14 +101,14 @@ public final class GrowthCommand {
     }
 
     private void sendHeader(CommandSender sender, Player targetPlayer) {
-        sender.sendMessage(core.messages().get("growth-info.header", Map.of("player", targetPlayer.getName())));
+        PlayerGrowthMessages.send(core, sender, "growth-info.header", Map.of("player", targetPlayer.getName()));
     }
 
     private void sendGender(CommandSender sender, Player targetPlayer) {
         GrowthEngine engine = core.growthEngine();
         PaperPlayerAdapter target = new PaperPlayerAdapter(targetPlayer);
-        sender.sendMessage(core.messages().get("growth-info.gender", Map.of(
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw))));
+        PlayerGrowthMessages.send(core, sender, "growth-info.gender", Map.of(
+                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
     }
 
     /** Height value plus growth progress - progress is a height-growth metric, so it belongs with height, not the generic summary alone. */
@@ -118,17 +119,17 @@ public final class GrowthCommand {
         Double scale = target.currentScale();
         double current = scale != null ? scale : engine.minScale();
 
-        sender.sendMessage(core.messages().get("growth-info.height", Map.of(
+        PlayerGrowthMessages.send(core, sender, "growth-info.height", Map.of(
                 "value", ScaleMath.formatValue(current),
                 "unit", core.messages().heightUnit(),
-                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw))));
+                "gender", core.genderRegistry().resolveDisplayName(engine.genderOf(target), core.messages()::raw)));
 
         if (engine.isAtMaxGrowth(target)) {
-            sender.sendMessage(core.messages().get("growth-info.max-reached"));
+            PlayerGrowthMessages.send(core, sender, "growth-info.max-reached");
         } else {
             long remaining = engine.secondsUntilFullGrowth(target);
-            sender.sendMessage(core.messages().get("growth-info.remaining", Map.of(
-                    "time", TimeFormatter.format(remaining, core.messages()))));
+            PlayerGrowthMessages.send(core, sender, "growth-info.remaining", Map.of(
+                    "time", TimeFormatter.format(remaining, core.messages())));
         }
     }
 }

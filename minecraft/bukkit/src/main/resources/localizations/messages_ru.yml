@@ -43,7 +43,7 @@ growth-info:
   remaining: '<secondary>Осталось времени: <primary><time>'
 
 admin:
-  reloaded: '<primary>Конфигурация <secondary>PlayerGrowth</secondary> перезагружена.</primary>'
+  reloaded: '<primary>Конфигурация <secondary>PlayerGrowth</secondary> успешно перезагружена! (<secondary><time></secondary>).</primary>'
 
 help:
   header: '<primary>--- Команды PlayerGrowth ---</primary>'

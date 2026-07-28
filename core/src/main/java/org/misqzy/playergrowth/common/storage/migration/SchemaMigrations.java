@@ -1,14 +1,16 @@
 package org.misqzy.playergrowth.common.storage.migration;
 
-import java.util.Comparator;
+import org.misqzy.playergrowth.common.config.migration.VersionComparator;
+import org.misqzy.playergrowth.common.storage.StorageType;
+
 import java.util.List;
 
 /**
- * Registry of every {@link SchemaMigration} this project has ever needed,
- * plus the current target version. Each storage implementation
- * ({@code AbstractSqlStorage}, {@code H2Storage}) stores this version in
- * its own {@code playergrowth_schema_version} table (one row, id 1) and
- * runs whatever's {@link #pending(int)} on connect - see the migration
+ * Registry of every {@link SchemaMigration} this project has ever needed.
+ * Each storage implementation ({@code AbstractSqlStorage}, {@code H2Storage})
+ * stores the plugin version that last touched its schema in its own
+ * {@code playergrowth_schema_version} table (one row, id 1) and runs
+ * whatever's {@link #pending(String, String)} on connect - see the migration
  * methods on those classes for the actual read/write/run orchestration
  * (kept per-class rather than shared, same reasoning as their CRUD SQL:
  * the version-table upsert syntax is itself dialect-specific - H2's
@@ -20,23 +22,42 @@ import java.util.List;
 public final class SchemaMigrations {
 
     /**
-     * The schema version this codebase currently expects. A brand new
-     * install's tables already match this shape directly (built fresh by
-     * each storage class's {@code CREATE TABLE IF NOT EXISTS} statements),
-     * so it only stamps this version rather than running any migration.
+     * The first real step: {@code playergrowth_schema_version.version} used
+     * to be a plain {@code INT} counter (pre-unification with
+     * {@code config.yml}'s semver, see {@code AbstractSqlStorage}/
+     * {@code H2Storage}'s {@code readSchemaVersion}). An upgrading install's
+     * column is still that {@code INT} - {@code readSchemaVersion} can read
+     * it fine ({@code ResultSet.getString} coerces a numeric column to text),
+     * but the subsequent write of a real semver like {@code "0.1.3"} would
+     * fail against a column that only accepts integers, so it has to be
+     * widened before that write happens. A fresh install's {@code CREATE
+     * TABLE IF NOT EXISTS} already builds the column as {@code VARCHAR},
+     * so this is a no-op there (nothing pending below {@code CURRENT_VERSION}
+     * once the version row is stamped directly).
      */
-    public static final int CURRENT_VERSION = 1;
+    private static final List<SchemaMigration> STEPS = List.of(
+            new SchemaMigration() {
+                @Override public String targetVersion() { return "0.1.3"; }
 
-    /** No migrations registered yet - this is the infrastructure a future schema change would register a step into. */
-    private static final List<SchemaMigration> STEPS = List.of();
+                @Override public List<String> statements(StorageType dialect) {
+                    return switch (dialect) {
+                        case H2 -> List.of("ALTER TABLE playergrowth_schema_version ALTER COLUMN version VARCHAR(32)");
+                        case MYSQL, MARIADB -> List.of(
+                                "ALTER TABLE playergrowth_schema_version MODIFY COLUMN version VARCHAR(32) NOT NULL");
+                        case YAML -> List.of(); // no SQL schema to migrate
+                    };
+                }
+            }
+    );
 
     private SchemaMigrations() {}
 
-    /** Every registered step whose {@code targetVersion()} falls in {@code (fromVersion, CURRENT_VERSION]}, in ascending order. */
-    public static List<SchemaMigration> pending(int fromVersion) {
+    /** Every registered step whose {@code targetVersion()} falls in {@code (fromVersion, toVersion]}, in ascending order. */
+    public static List<SchemaMigration> pending(String fromVersion, String toVersion) {
         return STEPS.stream()
-                .filter(step -> step.targetVersion() > fromVersion && step.targetVersion() <= CURRENT_VERSION)
-                .sorted(Comparator.comparingInt(SchemaMigration::targetVersion))
+                .filter(step -> VersionComparator.compare(step.targetVersion(), fromVersion) > 0
+                        && VersionComparator.compare(step.targetVersion(), toVersion) <= 0)
+                .sorted((a, b) -> VersionComparator.compare(a.targetVersion(), b.targetVersion()))
                 .toList();
     }
 }

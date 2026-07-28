@@ -10,6 +10,7 @@ import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
 import org.misqzy.playergrowth.common.domain.Gender;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.common.service.ScaleMath;
+import org.misqzy.playergrowth.paper.PlayerGrowthMessages;
 import org.misqzy.playergrowth.paper.PlayerGrowthPlugin;
 
 import java.util.ArrayList;
@@ -49,8 +50,8 @@ public final class CommandRegistry {
 
         manager.exceptionController().registerHandler(InvalidSyntaxException.class, ctx -> {
             CommandSourceStack source = ctx.context().sender();
-            source.getSender().sendMessage(core.messages().get("command.invalid-syntax",
-                    Map.of("syntax", "/" + ctx.exception().correctSyntax())));
+            PlayerGrowthMessages.send(core, source.getSender(), "command.invalid-syntax",
+                    Map.of("syntax", "/" + ctx.exception().correctSyntax()));
         });
 
         AnnotationParser<CommandSourceStack> parser = new AnnotationParser<>(manager, CommandSourceStack.class);
