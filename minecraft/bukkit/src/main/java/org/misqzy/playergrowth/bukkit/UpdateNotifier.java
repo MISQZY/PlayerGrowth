@@ -1,7 +1,8 @@
 package org.misqzy.playergrowth.bukkit;
 
-import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.misqzy.playergrowth.common.di.PlayerGrowthCore;
+import org.misqzy.playergrowth.common.notify.Notifier;
 import org.misqzy.playergrowth.common.platform.Scheduler;
 import org.misqzy.playergrowth.common.update.UpdateChecker;
 
@@ -59,11 +60,11 @@ public final class UpdateNotifier extends Notifier {
                         }));
     }
 
-    public void notifyIfPending(CommandSender sender) {
+    public void notifyIfPending(Player player) {
         String latest = availableVersion;
         if (latest == null) return;
 
-        notify(sender, "admin.update-available", Map.of(
+        notify(new BukkitPlayerAdapter(player), "admin.update-available", Map.of(
                 "latest", latest,
                 "current", BuildVersion.VERSION));
     }
