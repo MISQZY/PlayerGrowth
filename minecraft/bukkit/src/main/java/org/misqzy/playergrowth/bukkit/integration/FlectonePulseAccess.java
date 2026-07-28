@@ -48,9 +48,25 @@ final class FlectonePulseAccess {
 
     private FlectonePulseAccess() {}
 
-    /** FlectonePulse's live {@link FileFacade}, or {@code null} if unavailable for any reason. */
+    /**
+     * FlectonePulse's live {@link FileFacade}, or {@code null} if unavailable
+     * for any reason.
+     *
+     * <p>Needs its own try/catch around the {@code FileFacade.class} literal
+     * itself, not just the one inside {@link #tryGet} - a real live-deploy
+     * crash: with FlectonePulse not installed, {@code net.flectone.pulse.*}
+     * isn't on the classpath at all, so resolving that class literal throws
+     * {@link NoClassDefFoundError} in <em>this</em> method, one frame before
+     * {@link #tryGet}'s own try block is ever entered. {@code tryGet}'s catch
+     * can't help - by the time it would run, the failure already happened in
+     * its caller.</p>
+     */
     static FileFacade tryGetFileFacade() {
-        return tryGet(FileFacade.class);
+        try {
+            return tryGet(FileFacade.class);
+        } catch (RuntimeException | LinkageError e) {
+            return null;
+        }
     }
 
     /** Any of FlectonePulse's Guice-managed singletons, or {@code null} if unavailable for any reason (not installed, not ready, or an incompatible version). */
