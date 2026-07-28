@@ -41,7 +41,12 @@ public final class BukkitNetworkMessenger implements NetworkMessenger, PluginMes
     @Override
     public void broadcast(SyncMessage message) {
         Player carrier = Bukkit.getServer().getOnlinePlayers().stream().findAny().orElse(null);
-        if (carrier == null) return;
+        if (carrier == null) {
+            plugin.getLogger().warning("Could not relay a " + message.type() + " sync message for "
+                    + message.playerUuid() + " - no online player on this server to carry it. Other servers will "
+                    + "pick up the change from the database on this player's next join/tick instead.");
+            return;
+        }
         carrier.sendPluginMessage(plugin, SyncMessageCodec.CHANNEL, SyncMessageCodec.encode(message));
     }
 
