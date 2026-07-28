@@ -2,6 +2,9 @@ package org.misqzy.playergrowth.common.config;
 
 import org.misqzy.playergrowth.common.storage.StorageType;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /**
  * Immutable snapshot of everything the growth engine needs from config.yml.
  * A fresh instance is built on every reload; nothing here mutates in place,
@@ -37,6 +40,7 @@ public final class CoreConfig {
     private final long maxLifetimeMs;
 
     private final boolean networkSyncEnabled;
+    private final Set<String> networkBlocklist;
 
     private final boolean updateCheckerEnabled;
 
@@ -76,6 +80,12 @@ public final class CoreConfig {
 
         this.networkSyncEnabled = cfg.getBoolean("network.sync-enabled", false);
 
+        Set<String> blocklist = new LinkedHashSet<>();
+        for (String entry : cfg.getStringList("network.blocklist")) {
+            if (entry != null && !entry.isBlank()) blocklist.add(entry.trim());
+        }
+        this.networkBlocklist = Set.copyOf(blocklist);
+
         this.updateCheckerEnabled = cfg.getBoolean("update-checker.enabled", true);
     }
 
@@ -112,6 +122,9 @@ public final class CoreConfig {
     public long maxLifetimeMs() { return maxLifetimeMs; }
 
     public boolean networkSyncEnabled() { return networkSyncEnabled; }
+
+    /** Server-id strings (the {@code server} config key elsewhere in the network) whose in-game time is excluded from play_time - e.g. a hub/lobby server. Only consulted when {@link #networkSyncEnabled()} is on. */
+    public Set<String> networkBlocklist() { return networkBlocklist; }
 
     public boolean updateCheckerEnabled() { return updateCheckerEnabled; }
 

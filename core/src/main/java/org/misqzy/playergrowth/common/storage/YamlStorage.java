@@ -1,5 +1,6 @@
 package org.misqzy.playergrowth.common.storage;
 
+import org.misqzy.playergrowth.common.domain.PlayTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -62,6 +63,7 @@ public final class YamlStorage implements Storage {
             section("scales");
             section("genders");
             section("growth-times");
+            section("playtimes");
             return true;
         } catch (IOException e) {
             logger.severe("Failed to initialise YAML storage: " + e.getMessage());
@@ -209,6 +211,77 @@ public final class YamlStorage implements Storage {
         } finally {
             lock.writeLock().unlock();
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Playtime tracking
+    // -----------------------------------------------------------------------
+
+    @Override
+    public PlayTime getPlayTime(UUID uuid) {
+        lock.readLock().lock();
+        try {
+            Map<?, ?> entry = entry(section("playtimes"), uuid);
+            if (entry == null) return null;
+            return new PlayTime(longOf(entry, "first"), longOf(entry, "last"), longOf(entry, "total"), (int) longOf(entry, "sessions"));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Reads the existing entry (if any) to preserve {@code first}/{@code total}
+     * and bump {@code sessions} - the same get-or-create shape H2's
+     * {@code recordJoin} uses, since a flat-file "insert or partial update" has
+     * no atomic single-write equivalent either.
+     */
+    @Override
+    public boolean recordJoin(UUID uuid, long nowEpochSeconds) {
+        lock.writeLock().lock();
+        try {
+            Map<?, ?> existing = entry(section("playtimes"), uuid);
+
+            Map<String, Object> entry = newEntry();
+            entry.put("first", existing != null ? longOf(existing, "first") : nowEpochSeconds);
+            entry.put("last", nowEpochSeconds);
+            entry.put("total", existing != null ? longOf(existing, "total") : 0L);
+            entry.put("sessions", existing != null ? (int) longOf(existing, "sessions") + 1 : 1);
+            section("playtimes").put(uuid.toString(), entry);
+            persist();
+            return true;
+        } catch (IOException e) {
+            logger.severe("YAML recordJoin: " + e.getMessage());
+            return false;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public boolean checkpointPlayTime(UUID uuid, long totalSeconds, long nowEpochSeconds) {
+        lock.writeLock().lock();
+        try {
+            Map<?, ?> existing = entry(section("playtimes"), uuid);
+
+            Map<String, Object> entry = newEntry();
+            entry.put("first", existing != null ? longOf(existing, "first") : nowEpochSeconds);
+            entry.put("last", nowEpochSeconds);
+            entry.put("total", totalSeconds);
+            entry.put("sessions", existing != null ? (int) longOf(existing, "sessions") : 0);
+            section("playtimes").put(uuid.toString(), entry);
+            persist();
+            return true;
+        } catch (IOException e) {
+            logger.severe("YAML checkpointPlayTime: " + e.getMessage());
+            return false;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private long longOf(Map<?, ?> entry, String key) {
+        Object v = entry.get(key);
+        return v instanceof Number n ? n.longValue() : 0L;
     }
 
     // -----------------------------------------------------------------------

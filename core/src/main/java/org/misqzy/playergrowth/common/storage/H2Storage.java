@@ -2,6 +2,7 @@ package org.misqzy.playergrowth.common.storage;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.misqzy.playergrowth.common.domain.PlayTime;
 import org.misqzy.playergrowth.common.storage.migration.SchemaVersionStore;
 
 import java.io.File;
@@ -108,6 +109,11 @@ public final class H2Storage implements Storage {
             ).executeUpdate();
             conn.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS playergrowth_schema_version (id INT PRIMARY KEY, version VARCHAR(32) NOT NULL)"
+            ).executeUpdate();
+            conn.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS playergrowth_playtime (" +
+                            "uuid VARCHAR(36) PRIMARY KEY, first_seen BIGINT NOT NULL, last_seen BIGINT NOT NULL, " +
+                            "total_seconds BIGINT NOT NULL DEFAULT 0, sessions INT NOT NULL DEFAULT 0)"
             ).executeUpdate();
         }
     }
@@ -227,6 +233,83 @@ public final class H2Storage implements Storage {
             return true;
         } catch (SQLException e) {
             logger.severe("H2 setGrowthTimeSeconds: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public PlayTime getPlayTime(UUID uuid) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT first_seen, last_seen, total_seconds, sessions FROM playergrowth_playtime WHERE uuid = ?")) {
+            stmt.setString(1, uuid.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) return null;
+                return new PlayTime(rs.getLong("first_seen"), rs.getLong("last_seen"),
+                        rs.getLong("total_seconds"), rs.getInt("sessions"));
+            }
+        } catch (SQLException e) {
+            logger.severe("H2 getPlayTime: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * H2's {@code MERGE INTO ... KEY(uuid)} always replaces every listed column
+     * unconditionally - unlike MySQL/MariaDB's partial {@code ON DUPLICATE KEY
+     * UPDATE}, it can't express "preserve first_seen/total_seconds on conflict"
+     * in one statement. So this reads the existing row first (if any) and
+     * carries its first_seen/total_seconds/sessions forward into the MERGE,
+     * the same get-or-create shape {@code GrowthTimeAssigner.loadInto} already
+     * uses at the Java level instead of the SQL level.
+     */
+    @Override
+    public boolean recordJoin(UUID uuid, long nowEpochSeconds) {
+        try (Connection conn = dataSource.getConnection()) {
+            PlayTime existing;
+            try (PreparedStatement select = conn.prepareStatement(
+                    "SELECT first_seen, last_seen, total_seconds, sessions FROM playergrowth_playtime WHERE uuid = ?")) {
+                select.setString(1, uuid.toString());
+                try (ResultSet rs = select.executeQuery()) {
+                    existing = rs.next()
+                            ? new PlayTime(rs.getLong("first_seen"), rs.getLong("last_seen"), rs.getLong("total_seconds"), rs.getInt("sessions"))
+                            : null;
+                }
+            }
+
+            long firstSeen = existing != null ? existing.first() : nowEpochSeconds;
+            long totalSeconds = existing != null ? existing.total() : 0L;
+            int sessions = existing != null ? existing.sessions() + 1 : 1;
+
+            try (PreparedStatement merge = conn.prepareStatement(
+                    "MERGE INTO playergrowth_playtime (uuid, first_seen, last_seen, total_seconds, sessions) KEY(uuid) " +
+                            "VALUES (?, ?, ?, ?, ?)")) {
+                merge.setString(1, uuid.toString());
+                merge.setLong(2, firstSeen);
+                merge.setLong(3, nowEpochSeconds);
+                merge.setLong(4, totalSeconds);
+                merge.setInt(5, sessions);
+                merge.executeUpdate();
+            }
+            return true;
+        } catch (SQLException e) {
+            logger.severe("H2 recordJoin: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public boolean checkpointPlayTime(UUID uuid, long totalSeconds, long nowEpochSeconds) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "UPDATE playergrowth_playtime SET last_seen = ?, total_seconds = ? WHERE uuid = ?")) {
+            stmt.setLong(1, nowEpochSeconds);
+            stmt.setLong(2, totalSeconds);
+            stmt.setString(3, uuid.toString());
+            stmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            logger.severe("H2 checkpointPlayTime: " + e.getMessage());
             return false;
         }
     }

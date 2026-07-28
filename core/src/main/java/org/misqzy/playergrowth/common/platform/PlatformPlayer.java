@@ -23,7 +23,13 @@ public interface PlatformPlayer {
 
     void sendMessage(Component component);
 
-    /** Seconds of accumulated play time, used to drive time-based growth. */
+    /**
+     * Seconds of accumulated play time from this server's own local
+     * statistic - used to drive growth only when {@code network.sync-enabled}
+     * is off (see {@code GrowthEngine}'s "Playtime tracking" doc in
+     * {@code ARCHITECTURE.md}); with sync on, growth reads the shared,
+     * cross-server-consistent record instead.
+     */
     long playedSeconds();
 
     /** Current applied scale, or {@code null} if the scale attribute is unavailable. */

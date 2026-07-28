@@ -14,6 +14,7 @@ import org.misqzy.playergrowth.common.platform.PlatformPlayer;
 import org.misqzy.playergrowth.common.platform.PlayerLookup;
 import org.misqzy.playergrowth.common.storage.Storage;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ public final class GrowthEngine {
     private volatile Storage storage;
     private volatile GenderRegistry genderRegistry;
     private volatile GrowthTimeAssigner timeAssigner;
+    private volatile PlayTimeTracker playTimeTracker;
 
     @Inject
     public GrowthEngine(Platform platform, ProfileCache profiles, NetworkMessenger messenger, PlayerLookup playerLookup,
@@ -49,6 +51,7 @@ public final class GrowthEngine {
         this.storage = storage;
         this.genderRegistry = genderRegistry;
         this.timeAssigner = new GrowthTimeAssigner(config, storage);
+        this.playTimeTracker = new PlayTimeTracker(storage);
 
         messenger.onReceive(this::applyIncomingSync);
     }
@@ -78,6 +81,7 @@ public final class GrowthEngine {
         this.storage = newStorage;
         this.genderRegistry = newGenderRegistry;
         this.timeAssigner = new GrowthTimeAssigner(newConfig, newStorage);
+        this.playTimeTracker = new PlayTimeTracker(newStorage);
     }
 
     /** Called once per tick (main thread) with the currently online players. */
@@ -93,10 +97,33 @@ public final class GrowthEngine {
     // Player lifecycle
     // -----------------------------------------------------------------------
 
-    /** Loads a joining player's persisted state. Call {@code onLoaded} back on the main thread. */
+    /**
+     * Loads a joining player's persisted state. Call {@code onLoaded} back on
+     * the main thread.
+     *
+     * <p>Also called (with {@code onLoaded == null}) by {@link #refreshAfterReload}
+     * for every already-online player - {@code freshLoad} below distinguishes
+     * that case from a genuine join so {@link PlayTimeTracker#recordJoin} (which
+     * bumps the persisted session count) only ever fires on a real join,
+     * not on every reload.</p>
+     *
+     * <p>The DB-backed playtime tracker is only ever consulted when
+     * {@link CoreConfig#networkSyncEnabled()} is on - without a synced
+     * network there's no shared record to keep consistent, so growth just
+     * reads {@link PlatformPlayer#playedSeconds()} directly (see
+     * {@link #playedSeconds}) and this whole block is skipped, avoiding
+     * needless DB writes on every join/quit for the common single-server
+     * case. When sync is on but this server's own id is in
+     * {@link CoreConfig#networkBlocklist()} (e.g. a hub/lobby), a genuine
+     * join still only reads ({@link PlayTimeTracker#loadInto}), never
+     * records ({@link PlayTimeTracker#recordJoin}) - time spent here must
+     * not bump {@code last_seen}/{@code sessions} or it would count toward
+     * play_time the moment the player leaves.</p>
+     */
     public void loadPlayer(PlatformPlayer player, Runnable onLoaded) {
         platform.scheduler().runAsync(() -> {
             UUID uuid = player.uuid();
+            boolean freshLoad = profiles.get(uuid) == null;
             PlayerProfile profile = profiles.getOrCreate(uuid, genderRegistry.getDefault());
 
             Double storedScale = storage.getCustomScale(uuid);
@@ -107,6 +134,11 @@ public final class GrowthEngine {
 
             timeAssigner.loadInto(profile);
 
+            if (config.networkSyncEnabled()) {
+                if (freshLoad && !isServerBlocked()) playTimeTracker.recordJoin(profile);
+                else playTimeTracker.loadInto(profile);
+            }
+
             platform.scheduler().runSync(() -> {
                 if (player.isOnline()) applyScale(player);
                 if (onLoaded != null) onLoaded.run();
@@ -114,8 +146,22 @@ public final class GrowthEngine {
         });
     }
 
+    /**
+     * Checkpoints the player's accumulated playtime, then evicts their
+     * cached profile. Skipped entirely when sync is off (nothing was ever
+     * recorded to checkpoint) or this server is blocklisted (this session's
+     * time must not count).
+     */
     public void unloadPlayer(UUID uuid) {
+        PlayerProfile profile = profiles.get(uuid);
         profiles.remove(uuid);
+        if (!config.networkSyncEnabled() || isServerBlocked()) return;
+        if (profile == null || profile.lastCheckpointSeconds() < 0) return;
+
+        long now = Instant.now().getEpochSecond();
+        long newTotal = profile.totalPlayedSeconds() + (now - profile.lastCheckpointSeconds());
+        PlayTimeTracker tracker = playTimeTracker;
+        platform.scheduler().runAsync(() -> tracker.checkpoint(uuid, newTotal, now));
     }
 
     // -----------------------------------------------------------------------
@@ -147,6 +193,33 @@ public final class GrowthEngine {
         return genderRegistry;
     }
 
+    /**
+     * Current played seconds driving growth math.
+     *
+     * <p>Without a synced network ({@link CoreConfig#networkSyncEnabled()}
+     * off), falls back to {@link PlatformPlayer#playedSeconds()} - the
+     * server's own local statistic - exactly as before centralized playtime
+     * tracking existed; there's no shared record to keep consistent with a
+     * single server. With sync on, reads the DB-backed
+     * {@code total + (now - last)} reconstruction instead, mirroring
+     * FlectonePulse's own {@code TOTAL_DYNAMIC} - unless this server is
+     * listed in {@link CoreConfig#networkBlocklist()}, in which case time
+     * spent here is frozen out: the persisted total is returned as-is, with
+     * no live elapsed-time addition.</p>
+     */
+    private long playedSeconds(PlatformPlayer player, PlayerProfile profile) {
+        if (!config.networkSyncEnabled()) return player.playedSeconds();
+        if (profile == null) return 0L;
+        if (isServerBlocked()) return profile.totalPlayedSeconds();
+        if (profile.lastCheckpointSeconds() < 0) return 0L;
+        return profile.totalPlayedSeconds() + (Instant.now().getEpochSecond() - profile.lastCheckpointSeconds());
+    }
+
+    /** Whether this server's own id is in {@link CoreConfig#networkBlocklist()} - its in-game time should not count toward play_time. */
+    private boolean isServerBlocked() {
+        return config.networkBlocklist().contains(platform.serverId());
+    }
+
     public boolean isAtMaxGrowth(PlatformPlayer player) {
         PlayerProfile profile = profiles.get(player.uuid());
         if (profile == null || profile.hasCustomScale()) return false;
@@ -158,14 +231,14 @@ public final class GrowthEngine {
         long target = profile.targetGrowthSeconds();
         if (target <= 0) return scale >= max;
 
-        double progress = ScaleMath.progress(player.playedSeconds(), target);
+        double progress = ScaleMath.progress(playedSeconds(player, profile), target);
         return scale >= max && progress >= 1.0;
     }
 
     public long secondsUntilFullGrowth(PlatformPlayer player) {
         PlayerProfile profile = profiles.get(player.uuid());
         long target = profile != null ? profile.targetGrowthSeconds() : config.growTimeSeconds();
-        return ScaleMath.secondsRemaining(player.playedSeconds(), target);
+        return ScaleMath.secondsRemaining(playedSeconds(player, profile), target);
     }
 
     /** Progress toward this player's natural growth target, in {@code [0.0, 1.0]}. Custom-scale players have no growth curve to track, so they read as fully progressed. */
@@ -177,7 +250,7 @@ public final class GrowthEngine {
         long target = profile.targetGrowthSeconds();
         if (target <= 0) return 1.0;
 
-        return ScaleMath.progress(player.playedSeconds(), target);
+        return ScaleMath.progress(playedSeconds(player, profile), target);
     }
 
     public boolean hasCustomScale(PlatformPlayer player) {
@@ -202,7 +275,7 @@ public final class GrowthEngine {
             return;
         }
 
-        double progress = ScaleMath.progress(player.playedSeconds(), target);
+        double progress = ScaleMath.progress(playedSeconds(player, profile), target);
         player.applyScale(ScaleMath.scaleAtProgress(progress, minScale(), max));
     }
 

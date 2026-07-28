@@ -56,7 +56,15 @@ storage:
 network:
   # Enable to relay cache-invalidation messages across a network sharing
   # one database. Requires storage.type to be a shared backend (MYSQL/MARIADB).
+  # Growth playtime is only tracked centrally (consistent across every
+  # backend server) when this is true; with it off, each server falls back
+  # to its own local play-time statistic, same as running standalone.
   sync-enabled: false
+  # List of this network's `server` UUIDs (see the top-level `server` key)
+  # whose in-game time should NOT count towards a player's growth playtime -
+  # e.g. a hub/lobby server players idle on between real servers. Only
+  # consulted when sync-enabled is true.
+  blocklist: []
 
 update-checker:
   # Checks GitHub for a newer release once on startup; if one exists, warns
