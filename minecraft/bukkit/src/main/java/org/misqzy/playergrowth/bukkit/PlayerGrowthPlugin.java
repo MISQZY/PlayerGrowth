@@ -26,7 +26,9 @@ import org.misqzy.playergrowth.bukkit.listener.PlayerConnectionListener;
 import org.misqzy.playergrowth.bukkit.network.BukkitNetworkMessenger;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.LongConsumer;
 
@@ -84,9 +86,9 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
      * <p>Re-runs {@link ResourceInstaller} first, same as {@link #onEnable()}:
      * if an admin deletes a bundled resource (e.g. the whole
      * {@code localizations/} folder) after startup and then reloads, this
-     * recreates it from the jar instead of {@code loadMessages} throwing an
-     * {@code IllegalStateException} on a now-missing file - idempotent, so
-     * it never touches a resource that's still present.</p>
+     * recreates it before {@code loadAllMessages} would otherwise come back
+     * empty - idempotent, so it never touches a resource that's still
+     * present.</p>
      *
      * <p>Runs off the main thread: installing/migrating resources, reading
      * four YAML files and (when the configured storage backend changed)
@@ -108,7 +110,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
             ConfigView mainConfig = loadConfig("config.yml");
             FlectonePulseHealthCheck.logSummary(this);
-            core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig), FlectonePulseColorResolver::resolveDefaultColors);
+            core.reload(mainConfig, loadConfig("gender.yml"), loadAllMessages(), FlectonePulseColorResolver::resolveDefaultColors);
 
             scheduler.runSync(() -> {
                 if (ticker != null) ticker.restart();
@@ -150,7 +152,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         BukkitModule bukkitModule = new BukkitModule(scheduler, messenger, lookup);
 
         FlectonePulseHealthCheck.logSummary(this);
-        return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig),
+        return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadAllMessages(),
                 FlectonePulseColorResolver::resolveDefaultColors);
     }
 
@@ -163,10 +165,31 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         return YamlFileLoader.load(new File(getDataFolder(), fileName));
     }
 
-    private ConfigView loadMessages(ConfigView mainConfig) {
-        String locale = mainConfig.getString("locale", "en");
-        File file = new File(getDataFolder(), "localizations/messages_" + locale + ".yml");
-        if (!file.exists()) file = new File(getDataFolder(), "localizations/messages_en.yml");
-        return YamlFileLoader.load(file);
+    /**
+     * Every {@code localizations/messages_<code>.yml} present on disk, keyed
+     * by that lowercase code - not just config.yml's configured {@code
+     * locale}, so {@code Messages} can serve a specific recipient's own
+     * locale (a player's Minecraft client locale, see
+     * {@code PlayerGrowthMessages}) without needing a reload first. {@code
+     * en} is loaded first (if present) so it's the map's iteration-order
+     * fallback if the configured locale itself turns out to be unloaded -
+     * matches this method's own previous single-file fallback behavior.
+     */
+    private Map<String, ConfigView> loadAllMessages() {
+        Map<String, ConfigView> byLocale = new LinkedHashMap<>();
+        File dir = new File(getDataFolder(), "localizations");
+
+        File enFile = new File(dir, "messages_en.yml");
+        if (enFile.exists()) byLocale.put("en", YamlFileLoader.load(enFile));
+
+        File[] files = dir.listFiles((d, name) -> name.startsWith("messages_") && name.endsWith(".yml"));
+        if (files != null) {
+            for (File file : files) {
+                String name = file.getName();
+                String code = name.substring("messages_".length(), name.length() - ".yml".length()).toLowerCase();
+                byLocale.putIfAbsent(code, YamlFileLoader.load(file));
+            }
+        }
+        return byLocale;
     }
 }

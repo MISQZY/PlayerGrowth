@@ -19,6 +19,17 @@ import java.util.Map;
  * sender (console, or a player FlectonePulse doesn't have ready), or
  * FlectonePulse simply not being installed, falls back to this plugin's own
  * {@code Messages} + {@link LegacyText} rendering unchanged.
+ *
+ * <p>A {@link Player} sender's message locale is picked from their own
+ * Minecraft client locale ({@link Player#getLocale()}, e.g. {@code "ru_ru"} -
+ * only the language segment before the underscore is used) when a matching
+ * {@code localizations/messages_<code>.yml} is loaded, falling back to
+ * config.yml's configured {@code locale} otherwise (console senders always
+ * use the configured locale - there's no client locale to read). This is
+ * also what FlectonePulse's own translate module does under the hood when
+ * its {@code language.by-player} setting is on (verified by decompiling its
+ * real jar - it has no per-player language of its own to read either), so
+ * this stays consistent with it without needing any FlectonePulse API.</p>
  */
 public final class PlayerGrowthMessages {
 
@@ -31,11 +42,24 @@ public final class PlayerGrowthMessages {
     public static void send(PlayerGrowthCore core, CommandSender sender, String key, Map<String, Object> placeholders) {
         Messages messages = core.messages();
 
-        if (sender instanceof Player player && tryFlectonePulseSend(player, messages, key, placeholders)) {
+        if (sender instanceof Player player) {
+            String locale = clientLocale(messages, player);
+            if (tryFlectonePulseSend(player, messages, locale, key, placeholders)) return;
+            LegacyText.send(sender, messages.get(locale, key, placeholders));
             return;
         }
 
         LegacyText.send(sender, messages.get(key, placeholders));
+    }
+
+    /** {@code player}'s client locale's language segment (e.g. {@code "ru_ru"} -> {@code "ru"}) if a matching translation file is loaded, else config.yml's configured default. */
+    private static String clientLocale(Messages messages, Player player) {
+        String raw = player.getLocale();
+        if (raw == null || raw.isBlank()) return null;
+
+        int separator = raw.indexOf('_');
+        String language = (separator > 0 ? raw.substring(0, separator) : raw).toLowerCase();
+        return messages.hasLocale(language) ? language : null;
     }
 
     /**
@@ -53,9 +77,9 @@ public final class PlayerGrowthMessages {
      * cause as {@code FlectonePulseAccess.tryGetFileFacade}'s fix, one class
      * over.
      */
-    private static boolean tryFlectonePulseSend(Player player, Messages messages, String key, Map<String, Object> placeholders) {
+    private static boolean tryFlectonePulseSend(Player player, Messages messages, String locale, String key, Map<String, Object> placeholders) {
         try {
-            return FlectonePulseMessageDispatcher.trySend(player, messages.rawForDispatch(key), messages.externalDispatchResolvers(placeholders));
+            return FlectonePulseMessageDispatcher.trySend(player, messages.rawForDispatch(locale, key), messages.externalDispatchResolvers(placeholders));
         } catch (RuntimeException | LinkageError e) {
             return false;
         }

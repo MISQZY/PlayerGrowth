@@ -14,9 +14,15 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
- * Loads and renders MiniMessage strings from a localisation file into a
- * platform-agnostic {@link Component}. How that {@link Component} actually
- * reaches a player is up to the platform module: on Paper/Purpur the
+ * Loads and renders MiniMessage strings from every loaded localisation file
+ * into a platform-agnostic {@link Component}. Holds every bundled
+ * {@code localizations/messages_<code>.yml}, not just config.yml's
+ * configured default - every method has a {@code locale}-taking overload
+ * for a specific recipient (e.g. a player's own client locale, see
+ * {@code PlayerGrowthMessages}) plus a no-arg overload that uses the
+ * configured default, for callers with no specific recipient in mind (a
+ * command's tab-completion text, a placeholder). How that {@link Component}
+ * actually reaches a player is up to the platform module: on Paper/Purpur the
  * runtime {@code CommandSender} implements kyori's {@code Audience}
  * natively, while plain Spigot/CraftBukkit has no such support, so the
  * Bukkit module detects that at runtime and serialises to a legacy
@@ -78,32 +84,73 @@ public final class Messages {
     // into the output as literal text, so they're stripped before parsing.
     private static final Pattern CLOSING_TAGS = Pattern.compile("</primary>|</secondary>|</fcolor(?::[0-9]+)?>");
 
-    private final ConfigView data;
+    private final Map<String, ConfigView> locales;
+    private final String defaultLocale;
     private final String primaryColor;
     private final String secondaryColor;
     private final Supplier<Map<Integer, String>> fcolors;
 
-    public Messages(ConfigView data, String primaryColor, String secondaryColor, Supplier<Map<Integer, String>> fcolors) {
-        this.data = data;
+    /**
+     * @param locales       every loaded {@code localizations/messages_<code>.yml}, keyed by that
+     *                      lowercase locale code (e.g. {@code "en"}, {@code "ru"}) - not just
+     *                      {@code defaultLocale}'s - so a per-recipient locale (see
+     *                      {@link #get(String, String, Map)}) can be served without reloading anything.
+     * @param defaultLocale config.yml's configured {@code locale} - used by every overload below that
+     *                      doesn't take an explicit locale, and as the fallback when an explicit one
+     *                      isn't loaded (e.g. a player's client locale has no matching translation file).
+     */
+    public Messages(Map<String, ConfigView> locales, String defaultLocale,
+                     String primaryColor, String secondaryColor, Supplier<Map<Integer, String>> fcolors) {
+        this.locales = Map.copyOf(locales);
+        this.defaultLocale = defaultLocale;
         this.primaryColor = primaryColor;
         this.secondaryColor = secondaryColor;
         this.fcolors = fcolors != null ? fcolors : Map::of;
     }
 
+    /** Whether {@code locale} has its own loaded translation file - callers deciding what to resolve a client locale down to should check this first, since {@link #data(String)} silently falls back to {@link #defaultLocale} otherwise. */
+    public boolean hasLocale(String locale) {
+        return locale != null && locales.containsKey(locale);
+    }
+
+    private ConfigView data(String locale) {
+        ConfigView view = locale != null ? locales.get(locale) : null;
+        if (view != null) return view;
+
+        ConfigView fallback = locales.get(defaultLocale);
+        return fallback != null ? fallback : locales.values().iterator().next();
+    }
+
     public String raw(String key) {
-        return data.getString(key, "<red>Missing message: " + key + "</red>");
+        return raw(defaultLocale, key);
+    }
+
+    public String raw(String locale, String key) {
+        return data(locale).getString(key, "<red>Missing message: " + key + "</red>");
     }
 
     public Component get(String key, Map<String, Object> placeholders) {
-        return MINI.deserialize(stripClosingTags(raw(key)), themeResolvers(), buildResolver(placeholders));
+        return get(defaultLocale, key, placeholders);
+    }
+
+    public Component get(String locale, String key, Map<String, Object> placeholders) {
+        return MINI.deserialize(stripClosingTags(raw(locale, key)), themeResolvers(), buildResolver(placeholders));
     }
 
     public Component get(String key) {
-        return MINI.deserialize(stripClosingTags(raw(key)), themeResolvers());
+        return get(defaultLocale, key);
+    }
+
+    public Component get(String locale, String key) {
+        return MINI.deserialize(stripClosingTags(raw(locale, key)), themeResolvers());
     }
 
     public String heightUnit() {
-        return raw("height.unit");
+        return heightUnit(defaultLocale);
+    }
+
+    public String heightUnit(String locale) {
+        return raw(locale, "height.unit");
     }
 
     /**
@@ -119,7 +166,11 @@ public final class Messages {
      * resolution first.
      */
     public String rawForDispatch(String key) {
-        return stripClosingTags(raw(key));
+        return rawForDispatch(defaultLocale, key);
+    }
+
+    public String rawForDispatch(String locale, String key) {
+        return stripClosingTags(raw(locale, key));
     }
 
     /**
