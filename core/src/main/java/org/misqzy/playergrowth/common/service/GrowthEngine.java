@@ -360,6 +360,20 @@ public final class GrowthEngine {
             Double currentCustom = profile.customScale();
             boolean needsClamp = currentCustom != null && currentCustom > newMax;
             boolean clampOk = !needsClamp || storage.setCustomScale(uuid, newMax);
+            if (needsClamp && !clampOk) {
+                // The gender write above already committed, so this can't be
+                // rolled back into a clean failure - but silently reporting
+                // onSuccess here would hide that the player's persisted
+                // custom scale is now above their new gender's cap (applyScale
+                // still clamps it visually via maxScaleFor, so nothing is
+                // wrong on screen, only in storage) until an admin happens to
+                // notice via /height or the raw DB. Surface it instead of
+                // swallowing it.
+                platform.logger().warning("setGender(" + uuid + ", " + gender.key() + "): gender saved, but "
+                        + "clamping the existing custom scale (" + currentCustom + ") down to the new max ("
+                        + newMax + ") failed to persist - the stored custom scale now exceeds this gender's cap "
+                        + "until it's re-set or storage is reachable again.");
+            }
 
             platform.scheduler().runSync(() -> {
                 profile.setGender(gender);
