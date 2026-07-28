@@ -19,6 +19,7 @@ import org.misqzy.playergrowth.bukkit.config.ResourceInstaller;
 import org.misqzy.playergrowth.bukkit.config.ServerIdProvisioner;
 import org.misqzy.playergrowth.bukkit.config.YamlFileLoader;
 import org.misqzy.playergrowth.bukkit.integration.FlectonePulseColorResolver;
+import org.misqzy.playergrowth.bukkit.integration.FlectonePulseHealthCheck;
 import org.misqzy.playergrowth.bukkit.integration.FlectonePulseServerIdResolver;
 import org.misqzy.playergrowth.bukkit.integration.PlaceholderAPIHook;
 import org.misqzy.playergrowth.bukkit.listener.PlayerConnectionListener;
@@ -106,7 +107,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
             new ConfigMigrator(this).migrateIfNeeded();
 
             ConfigView mainConfig = loadConfig("config.yml");
-            FlectonePulseColorResolver.logDiagnostics(this);
+            FlectonePulseHealthCheck.logSummary(this);
             core.reload(mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig), FlectonePulseColorResolver::resolveDefaultColors);
 
             scheduler.runSync(() -> {
@@ -148,7 +149,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
         BukkitPlatform platform = new BukkitPlatform(this, scheduler, serverId);
         BukkitModule bukkitModule = new BukkitModule(scheduler, messenger, lookup);
 
-        FlectonePulseColorResolver.logDiagnostics(this);
+        FlectonePulseHealthCheck.logSummary(this);
         return PlayerGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadMessages(mainConfig),
                 FlectonePulseColorResolver::resolveDefaultColors);
     }
