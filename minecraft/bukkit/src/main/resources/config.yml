@@ -60,11 +60,18 @@ network:
   # backend server) when this is true; with it off, each server falls back
   # to its own local play-time statistic, same as running standalone.
   sync-enabled: false
-  # List of this network's `server` UUIDs (see the top-level `server` key)
-  # whose in-game time should NOT count towards a player's growth playtime -
-  # e.g. a hub/lobby server players idle on between real servers. Only
-  # consulted when sync-enabled is true.
-  blocklist: []
+  # Whether this server tracks its own playtime bucket separately instead of
+  # contributing to one network-wide total - e.g. servers with very
+  # different pacing that shouldn't share a single growth clock. When false
+  # (default), every server with include-server: true feeds the same
+  # network-wide total. Only consulted when sync-enabled is true.
+  per-server: false
+  # Whether time spent on THIS server counts towards growth playtime at all.
+  # Set to false on a hub/lobby server players idle on between real servers,
+  # so idling there doesn't help a player grow. This is a per-server setting -
+  # each server decides for itself, no need to list every other server's id
+  # here. Only consulted when sync-enabled is true.
+  include-server: true
 
 update-checker:
   # Checks GitHub for a newer release once on startup; if one exists, warns

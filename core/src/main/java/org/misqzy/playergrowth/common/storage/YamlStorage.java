@@ -218,10 +218,10 @@ public final class YamlStorage implements Storage {
     // -----------------------------------------------------------------------
 
     @Override
-    public PlayTime getPlayTime(UUID uuid) {
+    public PlayTime getPlayTime(UUID uuid, String server) {
         lock.readLock().lock();
         try {
-            Map<?, ?> entry = entry(section("playtimes"), uuid);
+            Map<?, ?> entry = entry(section("playtimes"), playtimeKey(uuid, server));
             if (entry == null) return null;
             return new PlayTime(longOf(entry, "first"), longOf(entry, "last"), longOf(entry, "total"), (int) longOf(entry, "sessions"));
         } finally {
@@ -236,17 +236,18 @@ public final class YamlStorage implements Storage {
      * no atomic single-write equivalent either.
      */
     @Override
-    public boolean recordJoin(UUID uuid, long nowEpochSeconds) {
+    public boolean recordJoin(UUID uuid, String server, long nowEpochSeconds) {
         lock.writeLock().lock();
         try {
-            Map<?, ?> existing = entry(section("playtimes"), uuid);
+            String key = playtimeKey(uuid, server);
+            Map<?, ?> existing = entry(section("playtimes"), key);
 
             Map<String, Object> entry = newEntry();
             entry.put("first", existing != null ? longOf(existing, "first") : nowEpochSeconds);
             entry.put("last", nowEpochSeconds);
             entry.put("total", existing != null ? longOf(existing, "total") : 0L);
             entry.put("sessions", existing != null ? (int) longOf(existing, "sessions") + 1 : 1);
-            section("playtimes").put(uuid.toString(), entry);
+            section("playtimes").put(key, entry);
             persist();
             return true;
         } catch (IOException e) {
@@ -258,17 +259,18 @@ public final class YamlStorage implements Storage {
     }
 
     @Override
-    public boolean checkpointPlayTime(UUID uuid, long totalSeconds, long nowEpochSeconds) {
+    public boolean checkpointPlayTime(UUID uuid, String server, long totalSeconds, long nowEpochSeconds) {
         lock.writeLock().lock();
         try {
-            Map<?, ?> existing = entry(section("playtimes"), uuid);
+            String key = playtimeKey(uuid, server);
+            Map<?, ?> existing = entry(section("playtimes"), key);
 
             Map<String, Object> entry = newEntry();
             entry.put("first", existing != null ? longOf(existing, "first") : nowEpochSeconds);
             entry.put("last", nowEpochSeconds);
             entry.put("total", totalSeconds);
             entry.put("sessions", existing != null ? (int) longOf(existing, "sessions") : 0);
-            section("playtimes").put(uuid.toString(), entry);
+            section("playtimes").put(key, entry);
             persist();
             return true;
         } catch (IOException e) {
@@ -279,6 +281,11 @@ public final class YamlStorage implements Storage {
         }
     }
 
+    /** {@code uuid} alone for the shared network-wide bucket ({@code server} == "", also matches every pre-existing row on disk) - {@code uuid:server} for a per-server bucket, so switching network.per-server on doesn't collide with the old key shape. */
+    private String playtimeKey(UUID uuid, String server) {
+        return server.isEmpty() ? uuid.toString() : uuid + ":" + server;
+    }
+
     private long longOf(Map<?, ?> entry, String key) {
         Object v = entry.get(key);
         return v instanceof Number n ? n.longValue() : 0L;
@@ -287,7 +294,11 @@ public final class YamlStorage implements Storage {
     // -----------------------------------------------------------------------
 
     private Map<?, ?> entry(Map<String, Object> section, UUID uuid) {
-        Object v = section.get(uuid.toString());
+        return entry(section, uuid.toString());
+    }
+
+    private Map<?, ?> entry(Map<String, Object> section, String key) {
+        Object v = section.get(key);
         return v instanceof Map<?, ?> m ? m : null;
     }
 

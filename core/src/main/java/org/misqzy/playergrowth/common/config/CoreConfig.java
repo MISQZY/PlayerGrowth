@@ -2,9 +2,6 @@ package org.misqzy.playergrowth.common.config;
 
 import org.misqzy.playergrowth.common.storage.StorageType;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 /**
  * Immutable snapshot of everything the growth engine needs from config.yml.
  * A fresh instance is built on every reload; nothing here mutates in place,
@@ -40,7 +37,8 @@ public final class CoreConfig {
     private final long maxLifetimeMs;
 
     private final boolean networkSyncEnabled;
-    private final Set<String> networkBlocklist;
+    private final boolean networkPerServer;
+    private final boolean networkIncludeServer;
 
     private final boolean updateCheckerEnabled;
 
@@ -79,12 +77,8 @@ public final class CoreConfig {
         this.maxLifetimeMs = cfg.getLong("storage.database.pool.max-lifetime", 1_800_000L);
 
         this.networkSyncEnabled = cfg.getBoolean("network.sync-enabled", false);
-
-        Set<String> blocklist = new LinkedHashSet<>();
-        for (String entry : cfg.getStringList("network.blocklist")) {
-            if (entry != null && !entry.isBlank()) blocklist.add(entry.trim());
-        }
-        this.networkBlocklist = Set.copyOf(blocklist);
+        this.networkPerServer = cfg.getBoolean("network.per-server", false);
+        this.networkIncludeServer = cfg.getBoolean("network.include-server", true);
 
         this.updateCheckerEnabled = cfg.getBoolean("update-checker.enabled", true);
     }
@@ -123,8 +117,11 @@ public final class CoreConfig {
 
     public boolean networkSyncEnabled() { return networkSyncEnabled; }
 
-    /** Server-id strings (the {@code server} config key elsewhere in the network) whose in-game time is excluded from play_time - e.g. a hub/lobby server. Only consulted when {@link #networkSyncEnabled()} is on. */
-    public Set<String> networkBlocklist() { return networkBlocklist; }
+    /** Whether playtime is tracked in a bucket scoped to this running server (keyed by its own {@code server} id) rather than one shared network-wide total. Only consulted when {@link #networkSyncEnabled()} is on. */
+    public boolean networkPerServer() { return networkPerServer; }
+
+    /** Whether time spent on this running server counts towards growth playtime at all - false for a hub/lobby server players idle on between real servers. A per-server setting (this server's own choice), not a network-wide list. Only consulted when {@link #networkSyncEnabled()} is on. */
+    public boolean networkIncludeServer() { return networkIncludeServer; }
 
     public boolean updateCheckerEnabled() { return updateCheckerEnabled; }
 

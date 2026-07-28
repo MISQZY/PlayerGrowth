@@ -68,6 +68,41 @@ public final class ConfigMigrations {
                         network.remove("server");
                     }
                 }
+            },
+            // network.blocklist (a list of excluded server ids, checked
+            // against every server on the network) is replaced by two
+            // per-server booleans this server decides for itself:
+            // network.per-server (split playtime into a bucket scoped to
+            // this server instead of one network-wide total) and
+            // network.include-server (whether this server's time counts at
+            // all - the direct replacement for "this server's own id was in
+            // the blocklist"). per-server defaults to false (unchanged
+            // network-wide-total behavior). include-server is derived from
+            // whether this install's own already-resolved top-level `server`
+            // id appeared in its own blocklist, so an admin who blocklisted
+            // this server keeps the same effective behavior after upgrading
+            // instead of silently starting to count blocklisted time again.
+            new ConfigMigrationStep() {
+                @Override public String targetVersion() { return "0.2.1"; }
+                @Override public String resourceName() { return "config.yml"; }
+                @Override @SuppressWarnings("unchecked")
+                public void apply(Map<String, Object> root) {
+                    Object networkSection = root.get("network");
+                    if (!(networkSection instanceof Map<?, ?> networkRaw)) return;
+                    Map<String, Object> network = (Map<String, Object>) networkRaw;
+
+                    Object blocklist = network.remove("blocklist");
+                    boolean includeServer = true;
+                    if (blocklist instanceof List<?> entries) {
+                        Object ownServer = root.get("server");
+                        if (ownServer instanceof String ownId && !ownId.isBlank()) {
+                            includeServer = entries.stream().noneMatch(entry -> ownId.equals(String.valueOf(entry).trim()));
+                        }
+                    }
+
+                    network.putIfAbsent("per-server", false);
+                    network.putIfAbsent("include-server", includeServer);
+                }
             }
     );
 

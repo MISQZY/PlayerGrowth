@@ -47,6 +47,37 @@ public final class SchemaMigrations {
                         case YAML -> List.of(); // no SQL schema to migrate
                     };
                 }
+            },
+            /*
+             * network.blocklist (a network-wide list of excluded server ids)
+             * was replaced with two per-server booleans, network.per-server
+             * and network.include-server (see ConfigMigrations' matching
+             * "0.2.1" step and ARCHITECTURE.md "network.blocklist"/
+             * "network.per-server" / "network.include-server"). Supporting
+             * network.per-server requires playergrowth_playtime to key each
+             * row by (uuid, server) instead of uuid alone, so a server can
+             * keep its own bucket instead of always sharing one network-wide
+             * row - existing rows get server = '' (the shared bucket every
+             * pre-0.2.1 install already used), which continues to read/write
+             * exactly as before when network.per-server stays false (the
+             * default). A fresh install's CREATE TABLE IF NOT EXISTS already
+             * builds this shape directly.
+             */
+            new SchemaMigration() {
+                @Override public String targetVersion() { return "0.2.1"; }
+
+                @Override public List<String> statements(StorageType dialect) {
+                    return switch (dialect) {
+                        case H2 -> List.of(
+                                "ALTER TABLE playergrowth_playtime ADD COLUMN server VARCHAR(64) NOT NULL DEFAULT ''",
+                                "ALTER TABLE playergrowth_playtime DROP PRIMARY KEY",
+                                "ALTER TABLE playergrowth_playtime ADD PRIMARY KEY (uuid, server)");
+                        case MYSQL, MARIADB -> List.of(
+                                "ALTER TABLE playergrowth_playtime ADD COLUMN server VARCHAR(64) NOT NULL DEFAULT ''",
+                                "ALTER TABLE playergrowth_playtime DROP PRIMARY KEY, ADD PRIMARY KEY (uuid, server)");
+                        case YAML -> List.of(); // no SQL schema to migrate
+                    };
+                }
             }
     );
 

@@ -36,10 +36,14 @@ public interface Storage {
     boolean setGrowthTimeSeconds(UUID uuid, long seconds);
 
     // Playtime tracking (first/last/total/sessions per player - modeled on
-    // FlectonePulse's own scheme, see ARCHITECTURE.md "Playtime tracking")
-    PlayTime getPlayTime(UUID uuid);
+    // FlectonePulse's own scheme, see ARCHITECTURE.md "Playtime tracking").
+    // Each row is keyed by (uuid, server) - `server` is "" for the shared
+    // network-wide bucket (network.per-server: false) or the running
+    // server's own id when tracking a per-server bucket (network.per-server:
+    // true) - see GrowthEngine's serverKey().
+    PlayTime getPlayTime(UUID uuid, String server);
     /** Creates the row on a brand new player (first=last=now, total=0, sessions=1); otherwise bumps last/sessions only, leaving first/total untouched. */
-    boolean recordJoin(UUID uuid, long nowEpochSeconds);
+    boolean recordJoin(UUID uuid, String server, long nowEpochSeconds);
     /** Persists an updated running total and resets the checkpoint - used at quit. */
-    boolean checkpointPlayTime(UUID uuid, long totalSeconds, long nowEpochSeconds);
+    boolean checkpointPlayTime(UUID uuid, String server, long totalSeconds, long nowEpochSeconds);
 }

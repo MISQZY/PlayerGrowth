@@ -113,8 +113,8 @@ public final class GrowthEngine {
      * reads {@link PlatformPlayer#playedSeconds()} directly (see
      * {@link #playedSeconds}) and this whole block is skipped, avoiding
      * needless DB writes on every join/quit for the common single-server
-     * case. When sync is on but this server's own id is in
-     * {@link CoreConfig#networkBlocklist()} (e.g. a hub/lobby), a genuine
+     * case. When sync is on but {@link CoreConfig#networkIncludeServer()} is
+     * false for this server (e.g. a hub/lobby), a genuine
      * join still only reads ({@link PlayTimeTracker#loadInto}), never
      * records ({@link PlayTimeTracker#recordJoin}) - time spent here must
      * not bump {@code last_seen}/{@code sessions} or it would count toward
@@ -135,8 +135,9 @@ public final class GrowthEngine {
             timeAssigner.loadInto(profile);
 
             if (config.networkSyncEnabled()) {
-                if (freshLoad && !isServerBlocked()) playTimeTracker.recordJoin(profile);
-                else playTimeTracker.loadInto(profile);
+                String server = serverKey();
+                if (freshLoad && config.networkIncludeServer()) playTimeTracker.recordJoin(profile, server);
+                else playTimeTracker.loadInto(profile, server);
             }
 
             platform.scheduler().runSync(() -> {
@@ -155,13 +156,14 @@ public final class GrowthEngine {
     public void unloadPlayer(UUID uuid) {
         PlayerProfile profile = profiles.get(uuid);
         profiles.remove(uuid);
-        if (!config.networkSyncEnabled() || isServerBlocked()) return;
+        if (!config.networkSyncEnabled() || !config.networkIncludeServer()) return;
         if (profile == null || profile.lastCheckpointSeconds() < 0) return;
 
         long now = Instant.now().getEpochSecond();
         long newTotal = profile.totalPlayedSeconds() + (now - profile.lastCheckpointSeconds());
         PlayTimeTracker tracker = playTimeTracker;
-        platform.scheduler().runAsync(() -> tracker.checkpoint(uuid, newTotal, now));
+        String server = serverKey();
+        platform.scheduler().runAsync(() -> tracker.checkpoint(uuid, server, newTotal, now));
     }
 
     // -----------------------------------------------------------------------
@@ -202,22 +204,22 @@ public final class GrowthEngine {
      * tracking existed; there's no shared record to keep consistent with a
      * single server. With sync on, reads the DB-backed
      * {@code total + (now - last)} reconstruction instead, mirroring
-     * FlectonePulse's own {@code TOTAL_DYNAMIC} - unless this server is
-     * listed in {@link CoreConfig#networkBlocklist()}, in which case time
-     * spent here is frozen out: the persisted total is returned as-is, with
-     * no live elapsed-time addition.</p>
+     * FlectonePulse's own {@code TOTAL_DYNAMIC} - unless
+     * {@link CoreConfig#networkIncludeServer()} is false for this running
+     * server, in which case time spent here is frozen out: the persisted
+     * total is returned as-is, with no live elapsed-time addition.</p>
      */
     private long playedSeconds(PlatformPlayer player, PlayerProfile profile) {
         if (!config.networkSyncEnabled()) return player.playedSeconds();
         if (profile == null) return 0L;
-        if (isServerBlocked()) return profile.totalPlayedSeconds();
+        if (!config.networkIncludeServer()) return profile.totalPlayedSeconds();
         if (profile.lastCheckpointSeconds() < 0) return 0L;
         return profile.totalPlayedSeconds() + (Instant.now().getEpochSecond() - profile.lastCheckpointSeconds());
     }
 
-    /** Whether this server's own id is in {@link CoreConfig#networkBlocklist()} - its in-game time should not count toward play_time. */
-    private boolean isServerBlocked() {
-        return config.networkBlocklist().contains(platform.serverId());
+    /** The playtime bucket key: this server's own id under {@link CoreConfig#networkPerServer()}, or {@code ""} for the one shared network-wide bucket. */
+    private String serverKey() {
+        return config.networkPerServer() ? platform.serverId() : "";
     }
 
     public boolean isAtMaxGrowth(PlatformPlayer player) {

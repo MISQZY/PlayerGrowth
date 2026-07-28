@@ -135,8 +135,10 @@ public abstract class AbstractSqlStorage implements Storage {
 
             conn.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS playergrowth_playtime (" +
-                            "uuid VARCHAR(36) PRIMARY KEY, first_seen BIGINT NOT NULL, last_seen BIGINT NOT NULL, " +
-                            "total_seconds BIGINT NOT NULL DEFAULT 0, sessions INT NOT NULL DEFAULT 0" +
+                            "uuid VARCHAR(36) NOT NULL, server VARCHAR(64) NOT NULL DEFAULT '', " +
+                            "first_seen BIGINT NOT NULL, last_seen BIGINT NOT NULL, " +
+                            "total_seconds BIGINT NOT NULL DEFAULT 0, sessions INT NOT NULL DEFAULT 0, " +
+                            "PRIMARY KEY (uuid, server)" +
                             ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
             ).executeUpdate();
         }
@@ -262,11 +264,12 @@ public abstract class AbstractSqlStorage implements Storage {
     }
 
     @Override
-    public PlayTime getPlayTime(UUID uuid) {
+    public PlayTime getPlayTime(UUID uuid, String server) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT first_seen, last_seen, total_seconds, sessions FROM playergrowth_playtime WHERE uuid = ?")) {
+                     "SELECT first_seen, last_seen, total_seconds, sessions FROM playergrowth_playtime WHERE uuid = ? AND server = ?")) {
             stmt.setString(1, uuid.toString());
+            stmt.setString(2, server);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) return null;
                 return new PlayTime(rs.getLong("first_seen"), rs.getLong("last_seen"),
@@ -279,15 +282,16 @@ public abstract class AbstractSqlStorage implements Storage {
     }
 
     @Override
-    public boolean recordJoin(UUID uuid, long nowEpochSeconds) {
+    public boolean recordJoin(UUID uuid, String server, long nowEpochSeconds) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO playergrowth_playtime (uuid, first_seen, last_seen, total_seconds, sessions) " +
-                             "VALUES (?, ?, ?, 0, 1) " +
+                     "INSERT INTO playergrowth_playtime (uuid, server, first_seen, last_seen, total_seconds, sessions) " +
+                             "VALUES (?, ?, ?, ?, 0, 1) " +
                              "ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen), sessions = sessions + 1")) {
             stmt.setString(1, uuid.toString());
-            stmt.setLong(2, nowEpochSeconds);
+            stmt.setString(2, server);
             stmt.setLong(3, nowEpochSeconds);
+            stmt.setLong(4, nowEpochSeconds);
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -297,13 +301,14 @@ public abstract class AbstractSqlStorage implements Storage {
     }
 
     @Override
-    public boolean checkpointPlayTime(UUID uuid, long totalSeconds, long nowEpochSeconds) {
+    public boolean checkpointPlayTime(UUID uuid, String server, long totalSeconds, long nowEpochSeconds) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "UPDATE playergrowth_playtime SET last_seen = ?, total_seconds = ? WHERE uuid = ?")) {
+                     "UPDATE playergrowth_playtime SET last_seen = ?, total_seconds = ? WHERE uuid = ? AND server = ?")) {
             stmt.setLong(1, nowEpochSeconds);
             stmt.setLong(2, totalSeconds);
             stmt.setString(3, uuid.toString());
+            stmt.setString(4, server);
             stmt.executeUpdate();
             return true;
         } catch (SQLException e) {
