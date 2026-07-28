@@ -18,7 +18,9 @@ import org.misqzy.playergrowth.common.storage.Storage;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.UUID;
+import java.util.function.DoubleConsumer;
 
 /**
  * Coordinates growth/gender/custom-scale state. This is the direct
@@ -305,23 +307,33 @@ public final class GrowthEngine {
         for (PlatformPlayer player : onlinePlayers) loadPlayer(player, null);
     }
 
-    public void setCustomScale(PlatformPlayer player, double scale, Runnable onSuccess, Runnable onFailure) {
+    /**
+     * @param onSuccess receives the scale actually applied - not always the
+     *                  raw {@code scale} passed in, since a value just
+     *                  outside {@code [min, max]} only because of
+     *                  {@link ScaleMath#formatValue}'s display rounding is
+     *                  clamped to the boundary rather than rejected, see
+     *                  {@link ScaleMath#clampToRange}.
+     */
+    public void setCustomScale(PlatformPlayer player, double scale, DoubleConsumer onSuccess, Runnable onFailure) {
         double min = minScale();
         double max = maxScaleFor(player);
-        if (scale < min || scale > max) {
+        OptionalDouble clamped = ScaleMath.clampToRange(scale, min, max);
+        if (clamped.isEmpty()) {
             if (onFailure != null) onFailure.run();
             return;
         }
+        double finalScale = clamped.getAsDouble();
 
         UUID uuid = player.uuid();
         platform.scheduler().runAsync(() -> {
-            boolean ok = storage.setCustomScale(uuid, scale);
+            boolean ok = storage.setCustomScale(uuid, finalScale);
             platform.scheduler().runSync(() -> {
                 if (ok) {
-                    profiles.getOrCreate(uuid, genderRegistry.getDefault()).setCustomScale(scale);
-                    player.applyScale(scale);
-                    messenger.broadcast(SyncMessage.scaleSet(uuid, scale, platform.serverId()));
-                    if (onSuccess != null) onSuccess.run();
+                    profiles.getOrCreate(uuid, genderRegistry.getDefault()).setCustomScale(finalScale);
+                    player.applyScale(finalScale);
+                    messenger.broadcast(SyncMessage.scaleSet(uuid, finalScale, platform.serverId()));
+                    if (onSuccess != null) onSuccess.accept(finalScale);
                 } else if (onFailure != null) {
                     onFailure.run();
                 }

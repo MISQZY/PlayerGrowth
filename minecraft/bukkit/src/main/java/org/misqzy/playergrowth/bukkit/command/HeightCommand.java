@@ -77,9 +77,9 @@ public final class HeightCommand {
         BukkitPlayerAdapter target = new BukkitPlayerAdapter(targetPlayer);
         double scale = ScaleMath.fromMeters(meters);
         engine.setCustomScale(target, scale,
-                () -> PlayerGrowthMessages.send(core, sender, "height.set", Map.of(
+                applied -> PlayerGrowthMessages.send(core, sender, "height.set", Map.of(
                         "player", targetPlayer.getName(),
-                        "value", ScaleMath.formatValue(scale))),
+                        "value", ScaleMath.formatValue(applied))),
                 () -> PlayerGrowthMessages.send(core, sender, "height.invalid", Map.of(
                         "min", ScaleMath.formatValue(engine.minScale()),
                         "max", ScaleMath.formatValue(engine.maxScaleFor(target)))));

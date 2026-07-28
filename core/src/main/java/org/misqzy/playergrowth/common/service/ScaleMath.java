@@ -1,6 +1,7 @@
 package org.misqzy.playergrowth.common.service;
 
 import java.util.Locale;
+import java.util.OptionalDouble;
 
 /**
  * Pure, stateless scale/growth-progress math. Combines what used to be two
@@ -53,5 +54,34 @@ public final class ScaleMath {
 
     public static long secondsRemaining(long playedSeconds, long targetSeconds) {
         return Math.max(0L, targetSeconds - playedSeconds);
+    }
+
+    /**
+     * Half of {@link #formatValue}'s 2-decimal meters rounding step,
+     * converted to scale space - the boundary tolerance {@link #clampToRange}
+     * uses so a value the player typed back exactly as displayed (e.g. the
+     * shown min/max) succeeds instead of being rejected by the precision
+     * {@link #formatValue}'s one-way rounding lost. Half a step, not a full
+     * one, since that's the largest gap {@code toMeters}/{@code fromMeters}'s
+     * round trip through a 2-decimal display can introduce in either
+     * direction.
+     */
+    private static final double BOUNDARY_TOLERANCE = 0.005 / METERS_AT_SCALE_ONE;
+
+    /**
+     * {@code value} clamped into {@code [min, max]} - but only if it's
+     * already inside that range, or outside it by no more than
+     * {@link #BOUNDARY_TOLERANCE} (a value that missed the boundary only
+     * because of {@link #formatValue}'s display rounding). Empty if
+     * {@code value} is genuinely out of range.
+     */
+    public static OptionalDouble clampToRange(double value, double min, double max) {
+        if (value < min) {
+            return (min - value) <= BOUNDARY_TOLERANCE ? OptionalDouble.of(min) : OptionalDouble.empty();
+        }
+        if (value > max) {
+            return (value - max) <= BOUNDARY_TOLERANCE ? OptionalDouble.of(max) : OptionalDouble.empty();
+        }
+        return OptionalDouble.of(value);
     }
 }
