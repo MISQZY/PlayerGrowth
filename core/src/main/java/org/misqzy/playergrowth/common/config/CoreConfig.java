@@ -38,6 +38,8 @@ public final class CoreConfig {
 
     private final boolean networkSyncEnabled;
 
+    private final boolean updateCheckerEnabled;
+
     public CoreConfig(ConfigView cfg) {
         this.version = cfg.getString("version", "0.0.0");
         this.minScale = cfg.getDouble("scale.min", 0.3);
@@ -73,6 +75,8 @@ public final class CoreConfig {
         this.maxLifetimeMs = cfg.getLong("storage.database.pool.max-lifetime", 1_800_000L);
 
         this.networkSyncEnabled = cfg.getBoolean("network.sync-enabled", false);
+
+        this.updateCheckerEnabled = cfg.getBoolean("update-checker.enabled", true);
     }
 
     /** The plugin build that generated this config.yml - kept in sync on every startup by ConfigMigrator, so this is always the currently-running build's version, not a stale snapshot. */
@@ -108,6 +112,8 @@ public final class CoreConfig {
     public long maxLifetimeMs() { return maxLifetimeMs; }
 
     public boolean networkSyncEnabled() { return networkSyncEnabled; }
+
+    public boolean updateCheckerEnabled() { return updateCheckerEnabled; }
 
     // network.server is deliberately not parsed here: the actual identifier
     // (Platform#serverId()) needs to auto-generate and persist a UUID back

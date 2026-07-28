@@ -36,6 +36,7 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
     private GrowthTicker ticker;
     private BukkitNetworkMessenger networkMessenger;
     private PlaceholderAPIHook placeholderHook;
+    private UpdateNotifier updateNotifier;
 
     @Override
     public void onEnable() {
@@ -46,8 +47,11 @@ public final class PlayerGrowthPlugin extends JavaPlugin {
 
         Bukkit.getServicesManager().register(PlayerGrowthAPI.class, new PlayerGrowthAPIImpl(core), this, ServicePriority.Normal);
 
+        updateNotifier = new UpdateNotifier(core, scheduler, getLogger());
+        updateNotifier.checkAsync();
+
         Bukkit.getPluginManager().registerEvents(
-                new PlayerConnectionListener(this, core.growthEngine()), this);
+                new PlayerConnectionListener(this, core.growthEngine(), updateNotifier), this);
 
         new CommandRegistry(this, core);
 

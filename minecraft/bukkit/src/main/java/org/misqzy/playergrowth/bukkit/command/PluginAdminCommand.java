@@ -19,7 +19,7 @@ public final class PluginAdminCommand {
         this.plugin = plugin;
     }
 
-    @Command("playergrowth reload")
+    @Command("playergrowth|pg reload")
     @CommandDescription("Reload the PlayerGrowth configuration.")
     @Permission("playergrowth.admin.reload")
     public void reload(CommandSender sender) {

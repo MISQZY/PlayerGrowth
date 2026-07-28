@@ -49,7 +49,7 @@ public final class HelpCommand {
         this.core = core;
     }
 
-    @Command("playergrowth help")
+    @Command("playergrowth|pg help")
     @CommandDescription("Lists every PlayerGrowth command you can use.")
     @Permission("playergrowth.help")
     public void help(CommandSender sender) {

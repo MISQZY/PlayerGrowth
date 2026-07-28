@@ -44,6 +44,7 @@ growth-info:
 
 admin:
   reloaded: '<primary>Конфигурация <secondary>PlayerGrowth</secondary> успешно перезагружена! (<secondary><time></secondary>).</primary>'
+  update-available: '<primary>Доступна новая версия <secondary>PlayerGrowth</secondary>: <secondary><latest></secondary><primary> (у вас <secondary><current></secondary><primary>). Скачать: <secondary>https://github.com/MISQZY/PlayerGrowth/releases</secondary>'
 
 help:
   header: '<primary>--- Команды PlayerGrowth ---</primary>'

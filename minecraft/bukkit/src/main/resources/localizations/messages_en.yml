@@ -44,6 +44,7 @@ growth-info:
 
 admin:
   reloaded: '<primary><secondary>PlayerGrowth</secondary> configuration successfully reloaded! (<secondary><time></secondary>).</primary>'
+  update-available: '<primary>A new <secondary>PlayerGrowth</secondary> version is available: <secondary><latest></secondary><primary> (you have <secondary><current></secondary><primary>). Download: <secondary>https://github.com/MISQZY/PlayerGrowth/releases</secondary>'
 
 help:
   header: '<primary>--- PlayerGrowth commands ---</primary>'

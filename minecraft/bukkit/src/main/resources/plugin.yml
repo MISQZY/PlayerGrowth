@@ -31,3 +31,6 @@ permissions:
   playergrowth.help:
     description: List available PlayerGrowth commands.
     default: true
+  playergrowth.update-notify:
+    description: Get notified in-game when a newer PlayerGrowth version is available.
+    default: op

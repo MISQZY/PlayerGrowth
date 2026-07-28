@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.misqzy.playergrowth.common.service.GrowthEngine;
 import org.misqzy.playergrowth.bukkit.BukkitPlayerAdapter;
+import org.misqzy.playergrowth.bukkit.UpdateNotifier;
 
 /**
  * Drives the growth engine's player lifecycle from Bukkit events, plus a
@@ -20,15 +21,18 @@ public final class PlayerConnectionListener implements Listener {
 
     private final JavaPlugin plugin;
     private final GrowthEngine growthEngine;
+    private final UpdateNotifier updateNotifier;
 
-    public PlayerConnectionListener(JavaPlugin plugin, GrowthEngine growthEngine) {
+    public PlayerConnectionListener(JavaPlugin plugin, GrowthEngine growthEngine, UpdateNotifier updateNotifier) {
         this.plugin = plugin;
         this.growthEngine = growthEngine;
+        this.updateNotifier = updateNotifier;
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         growthEngine.loadPlayer(new BukkitPlayerAdapter(event.getPlayer()), null);
+        updateNotifier.notifyIfPending(event.getPlayer());
     }
 
     @EventHandler

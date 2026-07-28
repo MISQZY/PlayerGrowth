@@ -48,6 +48,10 @@ client-side mod.
   config file) so the two plugins never disagree about which backend server
   they're each running on, and messages can use FlectonePulse's own
   `<fcolor:N>` color palette via the same tag it uses.
+- **Update notifications.** Checks GitHub once on startup for a newer
+  release; if one exists, warns in console and notifies players with
+  `playergrowth.update-notify` (default: op) on join. Disable entirely with
+  `update-checker.enabled: false` in `config.yml`.
 
 ## Supported platforms
 
@@ -72,8 +76,8 @@ support; Velocity is the only supported proxy.
 | `/growth summary [player]` | View height, gender, and growth progress. | `playergrowth.info` / `.others` |
 | `/growth height [player]` | View height and growth progress only. | `playergrowth.info` / `.others` |
 | `/growth gender [player]` | View gender only. | `playergrowth.info` / `.others` |
-| `/playergrowth reload` | Reload config/gender/messages without a restart. | `playergrowth.admin.reload` |
-| `/playergrowth help` | List every command available to you. | `playergrowth.help` |
+| `/playergrowth reload` (alias `/pg reload`) | Reload config/gender/messages without a restart. | `playergrowth.admin.reload` |
+| `/playergrowth help` (alias `/pg help`) | List every command available to you. | `playergrowth.help` |
 
 ## Configuration
 
