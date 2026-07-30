@@ -43,11 +43,11 @@ growth-info:
   remaining: '<secondary>Осталось времени: <primary><time>'
 
 admin:
-  reloaded: '<primary>Конфигурация <secondary>PlayerGrowth</secondary> успешно перезагружена! (<secondary><time></secondary>).</primary>'
-  update-available: '<primary>Доступна новая версия <secondary>PlayerGrowth</secondary>: <secondary><latest></secondary><primary> (у вас <secondary><current></secondary><primary>). Скачать: <secondary>https://github.com/MISQZY/PlayerGrowth/releases</secondary>'
+  reloaded: '<primary>Конфигурация <secondary>FlectoneGrowth</secondary> успешно перезагружена! (<secondary><time></secondary>).</primary>'
+  update-available: '<primary>Доступна новая версия <secondary>FlectoneGrowth</secondary>: <secondary><latest></secondary><primary> (у вас <secondary><current></secondary><primary>). Скачать: <secondary>https://github.com/MISQZY/FlectoneGrowth/releases</secondary>'
 
 help:
-  header: '<primary>--- Команды PlayerGrowth ---</primary>'
+  header: '<primary>--- Команды FlectoneGrowth ---</primary>'
   entry: '<secondary><syntax> - <primary><description>'
   height: 'Установить свой рост, в метрах.'
   height-remove: 'Сбросить свой индивидуальный рост.'
@@ -61,7 +61,7 @@ help:
   growth-height-others: 'Посмотреть информацию о росте другого игрока (только рост).'
   growth-gender: 'Посмотреть информацию о своём поле.'
   growth-gender-others: 'Посмотреть информацию о поле другого игрока.'
-  reload: 'Перезагрузить конфигурацию PlayerGrowth.'
+  reload: 'Перезагрузить конфигурацию FlectoneGrowth.'
   help: 'Показать это сообщение помощи.'
 
 time:

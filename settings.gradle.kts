@@ -1,4 +1,4 @@
-rootProject.name = "PlayerGrowth"
+rootProject.name = "FlectoneGrowth"
 
 include("core")
 include("minecraft:bukkit")

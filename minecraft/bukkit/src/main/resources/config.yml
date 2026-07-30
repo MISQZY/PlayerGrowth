@@ -43,7 +43,7 @@ storage:
   database:
     host: localhost
     port: 3306
-    name: playergrowth
+    name: flectonegrowth
     username: root
     password: ''
     pool:
@@ -75,6 +75,6 @@ network:
 
 update-checker:
   # Checks GitHub for a newer release once on startup; if one exists, warns
-  # in console and notifies players with playergrowth.update-notify on join.
+  # in console and notifies players with flectonegrowth.update-notify on join.
   # Set to false to disable both.
   enabled: true

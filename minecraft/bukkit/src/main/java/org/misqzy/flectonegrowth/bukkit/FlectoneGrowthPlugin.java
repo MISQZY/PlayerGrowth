@@ -1,0 +1,200 @@
+package org.misqzy.flectonegrowth.bukkit;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.ServicePriority;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.misqzy.flectonegrowth.common.config.ConfigView;
+import org.misqzy.flectonegrowth.common.di.FlectoneGrowthCore;
+import org.misqzy.flectonegrowth.common.network.NetworkMessenger;
+import org.misqzy.flectonegrowth.common.platform.PlatformPlayer;
+import org.misqzy.flectonegrowth.common.platform.PlayerLookup;
+import org.misqzy.flectonegrowth.common.platform.Scheduler;
+import org.misqzy.flectonegrowth.common.service.GrowthEngine;
+import org.misqzy.flectonegrowth.bukkit.api.FlectoneGrowthAPI;
+import org.misqzy.flectonegrowth.bukkit.api.FlectoneGrowthAPIImpl;
+import org.misqzy.flectonegrowth.bukkit.command.CommandRegistry;
+import org.misqzy.flectonegrowth.bukkit.config.ConfigMigrator;
+import org.misqzy.flectonegrowth.bukkit.config.LegacyDataFolderMigrator;
+import org.misqzy.flectonegrowth.bukkit.config.ResourceInstaller;
+import org.misqzy.flectonegrowth.bukkit.config.ServerIdProvisioner;
+import org.misqzy.flectonegrowth.bukkit.config.YamlFileLoader;
+import org.misqzy.flectonegrowth.bukkit.integration.FlectonePulseColorResolver;
+import org.misqzy.flectonegrowth.bukkit.integration.FlectonePulseHealthCheck;
+import org.misqzy.flectonegrowth.bukkit.integration.FlectonePulseServerIdResolver;
+import org.misqzy.flectonegrowth.bukkit.integration.PlaceholderAPIHook;
+import org.misqzy.flectonegrowth.bukkit.listener.PlayerConnectionListener;
+import org.misqzy.flectonegrowth.bukkit.network.BukkitNetworkMessenger;
+
+import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.LongConsumer;
+
+public final class FlectoneGrowthPlugin extends JavaPlugin {
+
+    private FlectoneGrowthCore core;
+    private Scheduler scheduler;
+    private GrowthTicker ticker;
+    private BukkitNetworkMessenger networkMessenger;
+    private PlaceholderAPIHook placeholderHook;
+    private UpdateNotifier updateNotifier;
+
+    @Override
+    public void onEnable() {
+        new LegacyDataFolderMigrator(this).migrateIfNeeded();
+        new ResourceInstaller(this).installDefaults();
+        new ConfigMigrator(this).migrateIfNeeded();
+
+        core = bootstrapCore();
+
+        Bukkit.getServicesManager().register(FlectoneGrowthAPI.class, new FlectoneGrowthAPIImpl(core), this, ServicePriority.Normal);
+
+        updateNotifier = new UpdateNotifier(core, scheduler, getLogger());
+        updateNotifier.checkAsync();
+
+        Bukkit.getPluginManager().registerEvents(
+                new PlayerConnectionListener(this, core.growthEngine(), updateNotifier), this);
+
+        new CommandRegistry(this, core);
+
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") && core.integrations().placeholderApiEnabled()) {
+            placeholderHook = new PlaceholderAPIHook(core);
+            placeholderHook.register();
+        }
+
+        ticker = new GrowthTicker(scheduler, core.growthEngine());
+        ticker.start();
+    }
+
+    @Override
+    public void onDisable() {
+        Bukkit.getServicesManager().unregisterAll(this);
+        if (ticker != null) ticker.stop();
+        if (placeholderHook != null) placeholderHook.unregister();
+        if (networkMessenger != null) networkMessenger.unregister();
+        if (core != null) core.shutdown();
+    }
+
+    /**
+     * Re-reads config/gender/messages from disk and hot-swaps them into the
+     * running engine, then re-derives every online player's cached growth
+     * state from the new config - without that last step, growth-setting
+     * changes (e.g. {@code growth.time-minutes}) silently only took effect
+     * for players who relog after the reload, not the ones already online.
+     *
+     * <p>Re-runs {@link ResourceInstaller} first, same as {@link #onEnable()}:
+     * if an admin deletes a bundled resource (e.g. the whole
+     * {@code localizations/} folder) after startup and then reloads, this
+     * recreates it before {@code loadAllMessages} would otherwise come back
+     * empty - idempotent, so it never touches a resource that's still
+     * present.</p>
+     *
+     * <p>Runs off the main thread: installing/migrating resources, reading
+     * four YAML files and (when the configured storage backend changed)
+     * reconnecting via HikariCP and running schema migrations are all
+     * blocking I/O, no different from the storage calls {@link GrowthEngine}
+     * already funnels through {@link Scheduler#runAsync} - the admin command
+     * that triggers this shouldn't freeze the whole server while a database
+     * reconnect is in flight. Only the last step (restarting the ticker and
+     * refreshing already-online players) touches Bukkit's Player/scheduler
+     * API and hops back to the main thread for that. {@code onComplete} runs
+     * on the main thread once everything has settled, receiving the total
+     * wall-clock time (in milliseconds) the whole reload took.</p>
+     */
+    public void reload(LongConsumer onComplete) {
+        long startedAt = System.currentTimeMillis();
+        scheduler.runAsync(() -> {
+            new ResourceInstaller(this).installDefaults();
+            new ConfigMigrator(this).migrateIfNeeded();
+
+            ConfigView mainConfig = loadConfig("config.yml");
+            ConfigView integrationsConfig = loadConfig("integrations.yml");
+            FlectonePulseHealthCheck.logSummary(this, integrationsConfig);
+            core.reload(mainConfig, loadConfig("gender.yml"), loadAllMessages(), integrationsConfig,
+                    () -> FlectonePulseColorResolver.resolveDefaultColors(integrationsConfig));
+
+            scheduler.runSync(() -> {
+                if (ticker != null) ticker.restart();
+
+                List<PlatformPlayer> online = Bukkit.getOnlinePlayers().stream()
+                        .<PlatformPlayer>map(BukkitPlayerAdapter::new)
+                        .toList();
+                core.growthEngine().refreshAfterReload(online);
+
+                if (onComplete != null) onComplete.accept(System.currentTimeMillis() - startedAt);
+            });
+        });
+    }
+
+    public FlectoneGrowthCore core() {
+        return core;
+    }
+
+    private FlectoneGrowthCore bootstrapCore() {
+        ConfigView mainConfig = loadConfig("config.yml");
+        ConfigView integrationsConfig = loadConfig("integrations.yml");
+
+        scheduler = new BukkitScheduler(this);
+
+        NetworkMessenger messenger;
+        if (mainConfig.getBoolean("network.sync-enabled", false)) {
+            networkMessenger = new BukkitNetworkMessenger(this);
+            networkMessenger.register();
+            messenger = networkMessenger;
+        } else {
+            messenger = NetworkMessenger.DISABLED;
+        }
+
+        PlayerLookup lookup = this::findOnline;
+
+        String configuredServerId = ServerIdProvisioner.resolveOrGenerate(this, mainConfig);
+        String serverId = FlectonePulseServerIdResolver.resolve(this, configuredServerId, integrationsConfig);
+        ServerIdProvisioner.persistIfChanged(this, configuredServerId, serverId);
+        BukkitPlatform platform = new BukkitPlatform(this, scheduler, serverId);
+        BukkitModule bukkitModule = new BukkitModule(scheduler, messenger, lookup);
+
+        FlectonePulseHealthCheck.logSummary(this, integrationsConfig);
+        return FlectoneGrowthCore.bootstrap(platform, bukkitModule, mainConfig, loadConfig("gender.yml"), loadAllMessages(),
+                integrationsConfig, () -> FlectonePulseColorResolver.resolveDefaultColors(integrationsConfig));
+    }
+
+    private PlatformPlayer findOnline(UUID uuid) {
+        Player player = Bukkit.getPlayer(uuid);
+        return player != null ? new BukkitPlayerAdapter(player) : null;
+    }
+
+    private ConfigView loadConfig(String fileName) {
+        return YamlFileLoader.load(new File(getDataFolder(), fileName));
+    }
+
+    /**
+     * Every {@code localizations/messages_<code>.yml} present on disk, keyed
+     * by that lowercase code - not just config.yml's configured {@code
+     * locale}, so {@code Messages} can serve a specific recipient's own
+     * locale (a player's Minecraft client locale, see
+     * {@code FlectoneGrowthMessages}) without needing a reload first. {@code
+     * en} is loaded first (if present) so it's the map's iteration-order
+     * fallback if the configured locale itself turns out to be unloaded -
+     * matches this method's own previous single-file fallback behavior.
+     */
+    private Map<String, ConfigView> loadAllMessages() {
+        Map<String, ConfigView> byLocale = new LinkedHashMap<>();
+        File dir = new File(getDataFolder(), "localizations");
+
+        File enFile = new File(dir, "messages_en.yml");
+        if (enFile.exists()) byLocale.put("en", YamlFileLoader.load(enFile));
+
+        File[] files = dir.listFiles((d, name) -> name.startsWith("messages_") && name.endsWith(".yml"));
+        if (files != null) {
+            for (File file : files) {
+                String name = file.getName();
+                String code = name.substring("messages_".length(), name.length() - ".yml".length()).toLowerCase();
+                byLocale.putIfAbsent(code, YamlFileLoader.load(file));
+            }
+        }
+        return byLocale;
+    }
+}

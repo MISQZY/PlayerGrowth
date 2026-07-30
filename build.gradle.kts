@@ -16,7 +16,7 @@ plugins {
 }
 
 allprojects {
-    group = "org.misqzy.playergrowth"
+    group = "org.misqzy.flectonegrowth"
     version = providers.gradleProperty("pluginVersion").get()
 
     repositories {
@@ -51,8 +51,8 @@ subprojects {
     // that needs it, from the same property, so there is exactly one place
     // (`gradle.properties`) anyone ever edits the version.
     val buildVersionPackages = mapOf(
-        "bukkit" to "org.misqzy.playergrowth.bukkit",
-        "velocity" to "org.misqzy.playergrowth.velocity",
+        "bukkit" to "org.misqzy.flectonegrowth.bukkit",
+        "velocity" to "org.misqzy.flectonegrowth.velocity",
     )
     buildVersionPackages[project.name]?.let { packageName ->
         val outputDir = layout.buildDirectory.dir("generated/sources/buildVersion/java/main")
@@ -87,7 +87,7 @@ subprojects {
     // are actual distributable platform plugins" set.
     if (buildVersionPackages.containsKey(project.name)) {
         extensions.configure<BasePluginExtension> {
-            archivesName.set("PlayerGrowth-${project.name.replaceFirstChar(Char::uppercase)}")
+            archivesName.set("FlectoneGrowth-${project.name.replaceFirstChar(Char::uppercase)}")
         }
     }
 }

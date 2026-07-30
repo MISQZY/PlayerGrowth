@@ -9,7 +9,7 @@ dependencies {
 
 // minecraft:velocity intentionally does not depend on core
 // (see docs/ARCHITECTURE.md) - it only relays opaque bytes on the
-// playergrowth:sync channel between backend servers and never decodes a
+// flectonegrowth:sync channel between backend servers and never decodes a
 // SyncMessage, so it stays a plain jar with no runtime dependencies to
 // shade and no shadow plugin applied.
 //

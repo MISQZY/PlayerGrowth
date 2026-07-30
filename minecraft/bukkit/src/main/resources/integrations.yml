@@ -1,4 +1,4 @@
-# Toggle individual PlayerGrowth integrations, or specific parts of one,
+# Toggle individual FlectoneGrowth integrations, or specific parts of one,
 # without needing to remove the other plugin itself. Everything defaults to
 # true (enabled) - only set what you want to turn off. Turning off a whole
 # module's `enabled` also turns off every submodule under it.
@@ -10,7 +10,7 @@ flectonepulse:
   enabled: true
   # <fcolor:N> palette matching (FlectonePulseColorResolver)
   colors: true
-  # Reuse FlectonePulse's configured server id instead of PlayerGrowth's own (FlectonePulseServerIdResolver)
+  # Reuse FlectonePulse's configured server id instead of FlectoneGrowth's own (FlectonePulseServerIdResolver)
   server-id: true
   # Route chat messages through FlectonePulse's own pipeline (FlectonePulseMessageDispatcher)
   message-dispatch: true

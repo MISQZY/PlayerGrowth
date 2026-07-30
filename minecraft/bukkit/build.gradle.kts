@@ -65,11 +65,11 @@ dependencies {
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveClassifier.set("")
-    relocate("com.google.inject", "org.misqzy.playergrowth.bukkit.libs.guice")
-    relocate("com.zaxxer.hikari", "org.misqzy.playergrowth.bukkit.libs.hikari")
-    relocate("org.yaml.snakeyaml", "org.misqzy.playergrowth.bukkit.libs.snakeyaml")
-    relocate("org.incendo.cloud", "org.misqzy.playergrowth.bukkit.libs.cloud")
-    relocate("net.kyori", "org.misqzy.playergrowth.bukkit.libs.kyori")
+    relocate("com.google.inject", "org.misqzy.flectonegrowth.bukkit.libs.guice")
+    relocate("com.zaxxer.hikari", "org.misqzy.flectonegrowth.bukkit.libs.hikari")
+    relocate("org.yaml.snakeyaml", "org.misqzy.flectonegrowth.bukkit.libs.snakeyaml")
+    relocate("org.incendo.cloud", "org.misqzy.flectonegrowth.bukkit.libs.cloud")
+    relocate("net.kyori", "org.misqzy.flectonegrowth.bukkit.libs.kyori")
     //
     // minimize() is deliberately NOT used: it depends on org.vafer:jdependency,
     // which bundles an ASM version that cannot parse Java 25 class files

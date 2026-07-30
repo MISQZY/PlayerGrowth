@@ -43,11 +43,11 @@ growth-info:
   remaining: '<secondary>Time remaining: <primary><time>'
 
 admin:
-  reloaded: '<primary><secondary>PlayerGrowth</secondary> configuration successfully reloaded! (<secondary><time></secondary>).</primary>'
-  update-available: '<primary>A new <secondary>PlayerGrowth</secondary> version is available: <secondary><latest></secondary><primary> (you have <secondary><current></secondary><primary>). Download: <secondary>https://github.com/MISQZY/PlayerGrowth/releases</secondary>'
+  reloaded: '<primary><secondary>FlectoneGrowth</secondary> configuration successfully reloaded! (<secondary><time></secondary>).</primary>'
+  update-available: '<primary>A new <secondary>FlectoneGrowth</secondary> version is available: <secondary><latest></secondary><primary> (you have <secondary><current></secondary><primary>). Download: <secondary>https://github.com/MISQZY/FlectoneGrowth/releases</secondary>'
 
 help:
-  header: '<primary>--- PlayerGrowth commands ---</primary>'
+  header: '<primary>--- FlectoneGrowth commands ---</primary>'
   entry: '<secondary><syntax> - <primary><description>'
   height: 'Set your own height, in meters.'
   height-remove: 'Remove your custom height.'
@@ -61,7 +61,7 @@ help:
   growth-height-others: 'View another player''s height info.'
   growth-gender: 'View your own gender info.'
   growth-gender-others: 'View another player''s gender info.'
-  reload: 'Reload the PlayerGrowth configuration.'
+  reload: 'Reload the FlectoneGrowth configuration.'
   help: 'Show this help message.'
 
 time:

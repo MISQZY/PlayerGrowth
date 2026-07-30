@@ -1,36 +1,36 @@
-name: PlayerGrowth
+name: FlectoneGrowth
 version: '${pluginVersion}'
-main: org.misqzy.playergrowth.bukkit.PlayerGrowthPlugin
+main: org.misqzy.flectonegrowth.bukkit.FlectoneGrowthPlugin
 api-version: '1.20.5'
 authors: [MISQZY]
 description: Gradual player height/scale growth with per-gender caps and optional cross-server sync.
 softdepend: [PlaceholderAPI, FlectonePulse]
 
 permissions:
-  playergrowth.height:
+  flectonegrowth.height:
     description: Set your own height.
     default: true
-  playergrowth.height.others:
+  flectonegrowth.height.others:
     description: Set another player's height.
     default: op
-  playergrowth.gender:
+  flectonegrowth.gender:
     description: Set your own gender.
     default: true
-  playergrowth.gender.others:
+  flectonegrowth.gender.others:
     description: Set another player's gender.
     default: op
-  playergrowth.info:
+  flectonegrowth.info:
     description: View your own growth info.
     default: true
-  playergrowth.info.others:
+  flectonegrowth.info.others:
     description: View another player's growth info.
     default: op
-  playergrowth.admin.reload:
-    description: Reload the PlayerGrowth configuration.
+  flectonegrowth.admin.reload:
+    description: Reload the FlectoneGrowth configuration.
     default: op
-  playergrowth.help:
-    description: List available PlayerGrowth commands.
+  flectonegrowth.help:
+    description: List available FlectoneGrowth commands.
     default: true
-  playergrowth.update-notify:
-    description: Get notified in-game when a newer PlayerGrowth version is available.
+  flectonegrowth.update-notify:
+    description: Get notified in-game when a newer FlectoneGrowth version is available.
     default: op
