@@ -3,11 +3,10 @@ package org.misqzy.playergrowth.bukkit.integration;
 import net.flectone.pulse.execution.dispatcher.MessageDispatcher;
 import net.flectone.pulse.execution.pipeline.MessagePipeline;
 import net.flectone.pulse.model.entity.FPlayer;
-import net.flectone.pulse.model.event.message.MessageSendEvent;
+import net.flectone.pulse.model.event.EventMetadata;
 import net.flectone.pulse.model.event.message.context.MessageContext;
 import net.flectone.pulse.service.FPlayerService;
 import net.flectone.pulse.util.constant.ModuleName;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.entity.Player;
 
@@ -74,15 +73,16 @@ public final class FlectonePulseMessageDispatcher {
             MessageDispatcher dispatcher = FlectonePulseAccess.tryGet(MessageDispatcher.class);
             if (pipeline == null || dispatcher == null) return false;
 
-            MessageContext context = MessageContext.builder()
-                    .sender(fPlayer)
-                    .receiver(fPlayer)
-                    .tagResolver(tagResolver)
-                    .message(rawMiniMessage)
-                    .build();
-            Component rendered = pipeline.build(context);
-
-            dispatcher.dispatch(new MessageSendEvent(ModuleName.INTEGRATION, fPlayer, rendered));
+            dispatcher.dispatch(ModuleName.INTEGRATION, EventMetadata.builder()
+                    .messageContext(fResolver -> MessageContext.builder()
+                            .sender(fPlayer)
+                            .receiver(fResolver)
+                            .tagResolver(tagResolver)
+                            .message(rawMiniMessage)
+                            .build()
+                    )
+                    .build()
+            );
             return true;
         } catch (RuntimeException | LinkageError e) {
             return false;

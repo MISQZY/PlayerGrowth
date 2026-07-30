@@ -7,6 +7,7 @@ repositories {
     // The old /content/repositories/placeholders/ path 404s now; ExtendedClip
     // moved their release repo to /releases/ (verified live, see docs/BUILD.md).
     maven("https://repo.extendedclip.com/releases/")
+    maven ("https://central.sonatype.com/repository/maven-snapshots/")
 }
 
 dependencies {
